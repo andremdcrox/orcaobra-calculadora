@@ -151,6 +151,16 @@ input[type=range]::-moz-range-thumb{width:22px; height:22px; border-radius:50%; 
 .exportBtns .btn{flex:1; min-width:160px; justify-content:center;}
 .quickResult{display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; background:var(--bg); border:1px dashed var(--accent); border-radius:12px; padding:12px 14px; margin-top:16px; font-size:14px;}
 .quickResult strong{font-family:'Space Grotesk'; font-size:18px; color:var(--accent);}
+.quickNav{position:sticky; top:0; z-index:30; display:flex; gap:8px; overflow-x:auto; padding:10px max(16px, env(safe-area-inset-left,0px)); background:var(--surface); border-bottom:1px solid var(--line); -webkit-overflow-scrolling:touch;}
+.quickNav a{flex:none; font-size:13px; font-weight:700; color:var(--muted); text-decoration:none; background:var(--bg); border:1px solid var(--line); padding:9px 16px; border-radius:999px; white-space:nowrap;}
+.quickNav a:active{background:var(--accent); color:var(--accent-ink); border-color:var(--accent);}
+@media (max-width:640px){
+  .btn{padding:16px 24px; font-size:16px;}
+  .btn.small{padding:12px 18px; font-size:14px;}
+  input, select{padding:14px 15px; font-size:16px;}
+  .rmBtn{width:44px; height:44px;}
+  label{font-size:14px;}
+}
 .modalOverlay{display:none; position:fixed; inset:0; background:rgba(0,0,0,.5); z-index:50; align-items:center; justify-content:center; padding:16px;}
 .modalOverlay.show{display:flex;}
 .modalCard{background:var(--surface); border-radius:20px; padding:28px; max-width:400px; width:100%; max-height:90vh; overflow-y:auto;}
@@ -172,62 +182,19 @@ input[type=range]::-moz-range-thumb{width:22px; height:22px; border-radius:50%; 
 </style>
 </head>
 <body>
-<div class="wrap hero">
-  <span class="eyebrow">Para pintores, pedreiros, eletricistas e arquitetos</span>
-  <h1>Descubra quanto cobrar na sua próxima obra</h1>
-  <p class="lead">Informe a metragem do serviço, quem vai trabalhar com você e os materiais usados. O OrçaObra calcula tudo — mão de obra, material e imposto — e entrega um orçamento pronto para mostrar ao cliente.</p>
-  <a href="#calc" class="btn">Ir para a calculadora ↓</a>
-  <div style="margin-top:18px; display:flex; gap:10px; justify-content:center; flex-wrap:wrap; position:relative;">
-    <button class="btn" id="installAppBtn" type="button" style="display:none;">📲 Baixar aplicativo</button>
-    <button class="btn secondary" id="openAuthBtn" type="button">👤 Entrar / Criar conta</button>
-    <a href="gastos.html" class="btn secondary">💰 Meus Gastos Pessoais</a>
-    <div id="userMenuWrap" style="display:none; position:relative;">
-      <button class="btn secondary" id="userMenuBtn" type="button"></button>
-      <div id="userMenuDropdown" class="userDropdown"></div>
-    </div>
-  </div>
-  <p class="small" id="iosInstallHint" style="display:none; max-width:440px; margin:10px auto 0;">📲 No iPhone: toque no ícone de compartilhar <strong>⬆️</strong> do Safari e depois em "Adicionar à Tela de Início".</p>
-  <div class="howrow">
-    <div class="howcard"><div class="num">01</div><h3>Escolha o serviço</h3><p>Pintura, alvenaria, elétrica, hidráulica ou um valor por m² personalizado.</p></div>
-    <div class="howcard"><div class="num">02</div><h3>Monte sua equipe</h3><p>Adicione cada funcionário com a diária que ele realmente recebe.</p></div>
-    <div class="howcard"><div class="num">03</div><h3>Receba o boletim</h3><p>Mão de obra + materiais + imposto, linha por linha, com o valor final.</p></div>
-  </div>
-  <div class="profrow">
-    <span class="chip">🎨 Pintor</span><span class="chip">🧱 Pedreiro</span><span class="chip">⚡ Eletricista</span><span class="chip">🚰 Encanador</span><span class="chip">📐 Arquiteto</span><span class="chip">🧰 Qualquer profissional</span>
-  </div>
-</div>
-
-<div class="modalOverlay" id="authModal">
-  <div class="modalCard">
-    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
-      <h2 id="authTitle">Entrar</h2>
-      <button class="rmBtn" id="closeAuthBtn" type="button">✕</button>
-    </div>
-    <button class="btn" id="googleBtn" type="button" style="width:100%; justify-content:center; background:#ffffff; color:#1f2a24; border:1px solid var(--line);">🔵 Continuar com Google</button>
-    <div style="display:flex; align-items:center; gap:10px; margin:16px 0; color:var(--muted); font-size:12px;">
-      <div style="flex:1; height:1px; background:var(--line);"></div>ou com e-mail<div style="flex:1; height:1px; background:var(--line);"></div>
-    </div>
-    <div class="field">
-      <label for="authEmail">E-mail</label>
-      <input id="authEmail" type="email" placeholder="voce@exemplo.com">
-    </div>
-    <div class="field">
-      <label for="authSenha">Senha</label>
-      <input id="authSenha" type="password" placeholder="Mínimo 6 caracteres">
-    </div>
-    <button class="btn" id="authSubmitBtn" type="button" style="width:100%; justify-content:center;">Entrar</button>
-    <p class="small" style="text-align:center; margin-top:12px;">
-      <a href="#" id="authToggleMode" style="color:var(--accent); text-decoration:underline;">Ainda não tem conta? Criar conta</a>
-    </p>
-    <p class="small" id="authMsg" style="text-align:center; min-height:16px;"></p>
-  </div>
+<div class="quickNav" id="quickNav">
+  <a href="#secDados">Dados</a>
+  <a href="#secEquipe">Equipe</a>
+  <a href="#secServico">Serviço</a>
+  <a href="#secMateriais">Materiais</a>
+  <a href="#secResultado">Resultado</a>
 </div>
 
 <div class="wrap" id="calc">
   <h2 class="calcTitle" style="text-align:center;">Calculadora de orçamento</h2>
   <p class="calcSub" style="text-align:center;">Preencha os campos abaixo. Os valores vão sendo somados automaticamente no boletim final.</p>
 
-  <div class="card">
+  <div class="card" id="secDados">
     <h2>Dados do orçamento</h2>
     <p class="stepnote">Esses nomes aparecem no resumo que você envia para o cliente.</p>
     <div class="grid2">
@@ -268,7 +235,7 @@ input[type=range]::-moz-range-thumb{width:22px; height:22px; border-radius:50%; 
     <div class="savedList" id="savedList"></div>
   </div>
 
-  <div class="card">
+  <div class="card" id="secEquipe">
     <h2>1. Equipe (diárias)</h2>
     <p class="stepnote">Quer só saber quanto vai gastar com funcionários e marmita? Preencha só esta parte e veja o total logo abaixo — não precisa mexer no resto da calculadora.</p>
     <div id="empList"></div>
@@ -283,7 +250,7 @@ input[type=range]::-moz-range-thumb{width:22px; height:22px; border-radius:50%; 
     </div>
   </div>
 
-  <div class="card">
+  <div class="card" id="secServico">
     <h2>2. Serviço e metragem</h2>
     <p class="stepnote">O valor sugerido por m² é uma referência de mercado — ajuste como preferir.</p>
     <div class="grid2">
@@ -329,6 +296,9 @@ input[type=range]::-moz-range-thumb{width:22px; height:22px; border-radius:50%; 
     </div>
   </div>
 
+  <button class="btn secondary" id="toggleAvancadoBtn" type="button" style="width:100%; justify-content:center; margin-bottom:16px;">⚙️ Mostrar etapas avançadas (itens extras, combustível, trabalho em altura)</button>
+  <div id="secaoAvancada" style="display:none;">
+
   <div class="card">
     <h2>3. Itens que você pode ter esquecido</h2>
     <p class="stepnote">Marque o que já está incluído no seu custo. O que ficar desmarcado entra como alerta — e, se você quiser, já soma um valor estimado ao orçamento.</p>
@@ -364,7 +334,7 @@ input[type=range]::-moz-range-thumb{width:22px; height:22px; border-radius:50%; 
     </div>
   </div>
 
-  <div class="card">
+  <div class="card" id="secMateriais">
     <h2>5. Materiais sugeridos</h2>
     <p class="stepnote">Preços médios de referência por m² (mercado nacional). Compare qualidade × preço antes de comprar.</p>
     <div class="matList" id="matList"></div>
@@ -415,6 +385,8 @@ input[type=range]::-moz-range-thumb{width:22px; height:22px; border-radius:50%; 
     </div>
   </div>
 
+  </div>
+
   <div class="card">
     <h2>7. Imposto / Nota fiscal</h2>
     <p class="stepnote">Percentual que você precisa repassar ao emitir nota (MEI/Simples costuma variar de 6% a 15%).</p>
@@ -429,7 +401,7 @@ input[type=range]::-moz-range-thumb{width:22px; height:22px; border-radius:50%; 
     </div>
   </div>
 
-  <div class="result">
+  <div class="result" id="secResultado">
     <div class="resultHead">
       <h2>📋 Boletim detalhado (seus custos)</h2>
       <button class="btn secondary" id="copyBtn" type="button">Copiar resumo</button>
@@ -501,6 +473,7 @@ input[type=range]::-moz-range-thumb{width:22px; height:22px; border-radius:50%; 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 <script>
 (function(){
   if('serviceWorker' in navigator){
@@ -526,6 +499,44 @@ input[type=range]::-moz-range-thumb{width:22px; height:22px; border-radius:50%; 
   const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
   const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
   if(isIOS && !isStandalone){ document.getElementById('iosInstallHint').style.display = 'block'; }
+
+  document.getElementById('toggleAvancadoBtn').addEventListener('click', ()=>{
+    const sec = document.getElementById('secaoAvancada');
+    const btn = document.getElementById('toggleAvancadoBtn');
+    const abrir = sec.style.display === 'none';
+    sec.style.display = abrir ? 'block' : 'none';
+    btn.textContent = abrir ? '⚙️ Esconder etapas avançadas' : '⚙️ Mostrar etapas avançadas (itens extras, combustível, trabalho em altura)';
+  });
+
+  // ---- Compartilhar (QR code + link) ----
+  const shareModal = document.getElementById('shareModal');
+  const shareUrl = window.location.origin + window.location.pathname;
+  document.getElementById('shareUrlInput').value = shareUrl;
+  document.getElementById('shareAppBtn').addEventListener('click', ()=>{
+    shareModal.classList.add('show');
+    const qrBox = document.getElementById('qrCodeBox');
+    if(!qrBox.dataset.rendered){
+      new QRCode(qrBox, { text: shareUrl, width:180, height:180, colorDark:'#1f2a24', colorLight:'#ffffff' });
+      qrBox.dataset.rendered = '1';
+    }
+  });
+  document.getElementById('closeShareBtn').addEventListener('click', ()=> shareModal.classList.remove('show'));
+  shareModal.addEventListener('click', e=>{ if(e.target===shareModal) shareModal.classList.remove('show'); });
+  document.getElementById('copyShareLinkBtn').addEventListener('click', async ()=>{
+    const msg = document.getElementById('shareMsg');
+    try{ await navigator.clipboard.writeText(shareUrl); msg.textContent = 'Link copiado!'; }
+    catch(e){
+      const input = document.getElementById('shareUrlInput');
+      input.select(); try{ document.execCommand('copy'); msg.textContent = 'Link copiado!'; }catch(e2){ msg.textContent = 'Copie o link manualmente acima.'; }
+    }
+  });
+  if(navigator.share){
+    const nativeBtn = document.getElementById('nativeShareBtn');
+    nativeBtn.style.display = 'inline-flex';
+    nativeBtn.addEventListener('click', ()=>{
+      navigator.share({ title:'OrçaObra', text:'Calculadora de orçamento para obras', url: shareUrl }).catch(()=>{});
+    });
+  }
 
   const sb = window.supabase.createClient(
     'https://wozdlrylzbhcpoxzjonn.supabase.co',
