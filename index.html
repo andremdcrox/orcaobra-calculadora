@@ -184,6 +184,15 @@ input[type=range]::-moz-range-thumb{width:22px; height:22px; border-radius:50%; 
         <input id="nomeCliente" type="text" placeholder="Ex: Maria Oliveira">
       </div>
     </div>
+    <div class="field">
+      <label for="tipoImovel">Tipo de imóvel/obra</label>
+      <select id="tipoImovel">
+        <option value="casa">Casa/residência</option>
+        <option value="predio">Apartamento/prédio (condomínio)</option>
+        <option value="comercial">Comercial/empresa</option>
+      </select>
+      <p class="small">O valor final muda conforme o tipo: prédio tem mais logística (elevador, regras de condomínio, horários) e obra comercial costuma ter prazo mais apertado e mais responsabilidade — por isso cobram mais que uma casa comum.</p>
+    </div>
   </div>
 
   <div class="card">
@@ -348,6 +357,12 @@ input[type=range]::-moz-range-thumb{width:22px; height:22px; border-radius:50%; 
     <p class="stepnote">Baseado na metragem, no tipo de serviço escolhido e no tamanho da sua equipe.</p>
     <p class="valorCobradoBig" id="prazoEstimadoTxt" style="font-size:22px;"></p>
     <p class="small" id="prazoDetalheTxt"></p>
+    <div class="field" style="margin-top:14px;">
+      <label for="bufferPrazoPct">Margem para imprevistos e clima (%)</label>
+      <input id="bufferPrazoPct" type="number" min="0" step="5" value="20">
+      <p class="small">Chuva, atraso de material, imprevisto de saúde da equipe etc. Para serviço em área externa, considere uma margem maior (25-40%), já que depende do tempo.</p>
+    </div>
+    <p class="valorCobradoBig" id="prazoComBufferTxt" style="font-size:20px; color:var(--accent);"></p>
     <p class="small" id="prazoAvisoTxt" style="font-weight:700;"></p>
   </div>
 
@@ -484,6 +499,8 @@ input[type=range]::-moz-range-thumb{width:22px; height:22px; border-radius:50%; 
   const tintaProdutividade = {latex:25, acrilica:20, esmalte:12, emborrachada:15, textura:10};
   const tomProdMultiplier = {claro:1.0, medio:0.85, escuro:0.7};
   const REPARO_RATE = 12; // R$/m² de mão de obra extra para reparo (trincas, massa, lixa) antes de pintar
+  const tipoImovelMultiplier = {casa:1.0, predio:1.15, comercial:1.3};
+  const tipoImovelLabel = {casa:'Casa/residência', predio:'Apartamento/prédio', comercial:'Comercial/empresa'};
 
   let areasPintura = [
     {ambiente:'interno', tinta:'acrilica', tom:'claro', m2:40, reparo:false}
@@ -533,7 +550,7 @@ input[type=range]::-moz-range-thumb{width:22px; height:22px; border-radius:50%; 
       el.addEventListener('change', e=>{
         const i = +e.target.dataset.i;
         areasPintura[i].reparo = e.target.checked;
-        render();
+        renderAreasPintura(); render();
       });
     });
     list.querySelectorAll('[data-rm]').forEach(btn=>{
@@ -965,6 +982,16 @@ input[type=range]::-moz-range-thumb{width:22px; height:22px; border-radius:50%; 
       detalheTxt.textContent = `Cálculo: ${homemDia.toFixed(1)} homem-dia necessários ÷ ${numFuncionarios} funcionário(s) na equipe = ${diasEstimados} dia(s). Isso é uma estimativa de produtividade média — ritmo do time, acesso ao local e imprevistos podem mudar o prazo real.`;
     }
 
+    const bufferPct = +document.getElementById('bufferPrazoPct').value || 0;
+    const diasComBuffer = Math.ceil(diasEstimados * (1 + bufferPct/100));
+    const temAreaExterna = isPintura && areasPintura.some(a=>a.ambiente==='externo');
+    document.getElementById('prazoComBufferTxt').textContent = `Prazo com margem de imprevistos: ${diasComBuffer} dia(s)`;
+    if(temAreaExterna && bufferPct < 25){
+      avisoTxt.textContent = '⚠️ Essa obra tem área externa — o clima pode atrasar lavagem, secagem e pintura. Considere usar uma margem de pelo menos 25-30% em vez de ' + bufferPct + '%.';
+      avisoTxt.style.color = '#e5484d';
+      return;
+    }
+
     const diasInformados = empregados.length ? Math.round(empregados.reduce((s,e)=>s+e.dias,0)/empregados.length) : 0;
     if(diasInformados > 0){
       if(diasInformados < diasEstimados){
@@ -1045,7 +1072,10 @@ input[type=range]::-moz-range-thumb{width:22px; height:22px; border-radius:50%; 
     const comMargem = subtotal + margem;
     const impostoPct = +document.getElementById('imposto').value || 0;
     const imposto = comMargem * impostoPct/100;
-    const total = comMargem + imposto;
+    const totalBase = comMargem + imposto;
+    const tipoImovelVal = document.getElementById('tipoImovel').value;
+    const ajusteImovel = tipoImovelMultiplier[tipoImovelVal] || 1;
+    const total = totalBase * ajusteImovel;
 
     calcularPrazo(isPintura, m2);
 
@@ -1060,7 +1090,9 @@ input[type=range]::-moz-range-thumb{width:22px; height:22px; border-radius:50%; 
     sliderEl.min = sliderMin; sliderEl.max = sliderMax; sliderEl.step = 10;
     if(!sliderTouched){ sliderEl.value = Math.round(total/10)*10; }
     else if(+sliderEl.value < sliderMin){ sliderEl.value = sliderMin; }
-    document.getElementById('valorSugeridoTxt').textContent = `Valor sugerido (custo + margem de ${margemPct}% + imposto): ${fmt(total)}`;
+    document.getElementById('valorSugeridoTxt').textContent = ajusteImovel !== 1
+      ? `Valor sugerido (custo + margem de ${margemPct}% + imposto, ajustado ${((ajusteImovel-1)*100).toFixed(0)}% por ser ${tipoImovelLabel[tipoImovelVal]}): ${fmt(total)}`
+      : `Valor sugerido (custo + margem de ${margemPct}% + imposto): ${fmt(total)}`;
     let faixaMargem;
     if(custoReal < 1000) faixaMargem = '15% a 20%';
     else if(custoReal < 5000) faixaMargem = '20% a 30%';
@@ -1081,6 +1113,7 @@ input[type=range]::-moz-range-thumb{width:22px; height:22px; border-radius:50%; 
       ['Adicional de risco/periculosidade', `${riscoPct}% sobre mão de obra`, fmt(custoRisco)],
       ['Margem/imprevistos', `${margemPct}% sobre subtotal`, fmt(margem)],
       ['Imposto (nota fiscal)', `${impostoPct}% sobre o valor com margem`, fmt(imposto)],
+      ['Ajuste por tipo de imóvel', `${tipoImovelLabel[tipoImovelVal]} (${ajusteImovel===1?'sem ajuste':'+'+((ajusteImovel-1)*100).toFixed(0)+'%'})`, fmt(total-totalBase)],
     ];
     document.getElementById('boletimBody').innerHTML =
       rows.map(r=>`<tr><td>${r[0]}</td><td>${r[1]}</td><td style="text-align:right;">${r[2]}</td></tr>`).join('') +
@@ -1089,7 +1122,7 @@ input[type=range]::-moz-range-thumb{width:22px; height:22px; border-radius:50%; 
       rows.map(r=>`${r[0]}: ${r[2]}`).join('\n') + `\nTOTAL: ${fmt(total)}`;
   }
 
-  ['metragem','valorM2','materialPct','imposto','margem','marmitaValor','distancia','diasDeslocamento','consumo','precoCombustivel','diasAltura','valorDiariaEquip','adicionalRisco','nomeProfissional','nomeCliente'].forEach(id=>{
+  ['metragem','valorM2','materialPct','imposto','margem','marmitaValor','distancia','diasDeslocamento','consumo','precoCombustivel','diasAltura','valorDiariaEquip','adicionalRisco','nomeProfissional','nomeCliente','bufferPrazoPct','tipoImovel'].forEach(id=>{
     document.getElementById(id).addEventListener('input', render);
   });
   ['nomeProfissional','nomeCliente'].forEach(id=>{
