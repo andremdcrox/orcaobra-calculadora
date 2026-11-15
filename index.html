@@ -483,9 +483,10 @@ input[type=range]::-moz-range-thumb{width:22px; height:22px; border-radius:50%; 
   const tomMultiplier = {claro:1.0, medio:1.15, escuro:1.3};
   const tintaProdutividade = {latex:25, acrilica:20, esmalte:12, emborrachada:15, textura:10};
   const tomProdMultiplier = {claro:1.0, medio:0.85, escuro:0.7};
+  const REPARO_RATE = 12; // R$/m² de mão de obra extra para reparo (trincas, massa, lixa) antes de pintar
 
   let areasPintura = [
-    {ambiente:'interno', tinta:'acrilica', tom:'claro', m2:40}
+    {ambiente:'interno', tinta:'acrilica', tom:'claro', m2:40, reparo:false}
   ];
   const nomesTinta = {latex:'Látex PVA', acrilica:'Tinta acrílica', esmalte:'Esmalte sintético', emborrachada:'Tinta emborrachada', textura:'Textura/grafiato'};
   function renderAreasPintura(){
@@ -514,14 +515,25 @@ input[type=range]::-moz-range-thumb{width:22px; height:22px; border-radius:50%; 
         </div>
         <div><label>m²</label><input data-i="${i}" data-f="m2" type="number" min="0" step="0.5" value="${a.m2}"></div>
         <button class="rmBtn" data-rm="${i}" type="button" title="Remover">✕</button>
-        <div class="rowPrice">R$ ${base.toFixed(2)}/m² × ${tomMultiplier[a.tom]} (tom) = R$ ${valorM2Area.toFixed(2)}/m² · subtotal: ${fmt(valorM2Area*a.m2)}</div>
+        <label style="display:flex; align-items:center; gap:6px; font-weight:400; grid-column:1/-1; margin-top:4px;">
+          <input type="checkbox" data-i="${i}" data-f="reparo" style="width:16px; height:16px;" ${a.reparo?'checked':''}>
+          Precisa de reparo antes (trincas, descascado, bolor/mofo)?
+        </label>
+        <div class="rowPrice">R$ ${base.toFixed(2)}/m² × ${tomMultiplier[a.tom]} (tom) = R$ ${valorM2Area.toFixed(2)}/m²${a.reparo?` + R$ ${REPARO_RATE.toFixed(2)}/m² de reparo = R$ ${valorM2ComReparo(a).toFixed(2)}/m²`:''} · subtotal: ${fmt(valorM2ComReparo(a)*a.m2)}${a.ambiente==='externo'?' · área externa: inclui lavagem e produto antimofo no prazo':''}</div>
       </div>`;
     }).join('');
-    list.querySelectorAll('select, input').forEach(el=>{
+    list.querySelectorAll('select, input[type=number], input[type=text]').forEach(el=>{
       el.addEventListener('input', e=>{
         const i = +e.target.dataset.i, f = e.target.dataset.f;
         areasPintura[i][f] = f==='m2' ? (+e.target.value||0) : e.target.value;
         renderAreasPintura(); render();
+      });
+    });
+    list.querySelectorAll('input[type=checkbox]').forEach(el=>{
+      el.addEventListener('change', e=>{
+        const i = +e.target.dataset.i;
+        areasPintura[i].reparo = e.target.checked;
+        render();
       });
     });
     list.querySelectorAll('[data-rm]').forEach(btn=>{
@@ -531,12 +543,16 @@ input[type=range]::-moz-range-thumb{width:22px; height:22px; border-radius:50%; 
     });
   }
   document.getElementById('addAreaPintura').addEventListener('click', ()=>{
-    areasPintura.push({ambiente:'interno', tinta:'acrilica', tom:'claro', m2:20});
+    areasPintura.push({ambiente:'interno', tinta:'acrilica', tom:'claro', m2:20, reparo:false});
     renderAreasPintura(); render();
   });
 
+  function valorM2ComReparo(a){
+    const base = Math.round(tintaRates[a.tinta][a.ambiente]*tomMultiplier[a.tom]*100)/100;
+    return base + (a.reparo ? REPARO_RATE : 0);
+  }
   function valorPinturaTotal(){
-    return areasPintura.reduce((s,a)=> s + a.m2 * Math.round(tintaRates[a.tinta][a.ambiente]*tomMultiplier[a.tom]*100)/100, 0);
+    return areasPintura.reduce((s,a)=> s + a.m2 * valorM2ComReparo(a), 0);
   }
   function metragemPinturaTotal(){
     return areasPintura.reduce((s,a)=> s + a.m2, 0);
@@ -910,9 +926,27 @@ input[type=range]::-moz-range-thumb{width:22px; height:22px; border-radius:50%; 
     const detalheTxt = document.getElementById('prazoDetalheTxt');
     const avisoTxt = document.getElementById('prazoAvisoTxt');
     let homemDia = null;
+    let diasEstimados;
 
     if(isPintura){
-      homemDia = areasPintura.reduce((s,a)=> s + a.m2 / (tintaProdutividade[a.tinta] * tomProdMultiplier[a.tom]), 0);
+      const linhas = areasPintura.map((a,i)=>{
+        const prodPintura = tintaProdutividade[a.tinta] * tomProdMultiplier[a.tom];
+        const diasPintura = Math.max(1, Math.ceil((a.m2/prodPintura)/numFuncionarios));
+        const diasLavagem = a.ambiente==='externo' ? Math.max(1, Math.ceil((a.m2/80)/numFuncionarios)) : 0;
+        const diasReparo = a.reparo ? Math.max(1, Math.ceil((a.m2/15)/numFuncionarios)) : 0;
+        const diasSecagem = (a.ambiente==='externo' || a.reparo) ? 1 : 0;
+        const diasArea = diasLavagem + diasReparo + diasSecagem + diasPintura;
+        const etapas = [];
+        if(diasReparo) etapas.push(`${diasReparo}d de reparo (trincas/descascado)`);
+        if(diasLavagem) etapas.push(`${diasLavagem}d de lavagem + produto antimofo/limo`);
+        if(diasSecagem) etapas.push(`${diasSecagem}d de secagem`);
+        etapas.push(`${diasPintura}d de pintura`);
+        return { texto: `Ambiente ${i+1} (${a.ambiente}, ${a.m2}m²): ${diasArea}d — ${etapas.join(' + ')}`, dias: diasArea };
+      });
+      diasEstimados = linhas.reduce((s,l)=>s+l.dias, 0);
+      prazoTxt.textContent = `${diasEstimados} dia(s) útil(eis)`;
+      detalheTxt.innerHTML = linhas.map(l=>l.texto).join('<br>') +
+        '<br><br>Os ambientes são somados em sequência (mesma equipe passando de um para o outro). É uma estimativa de produtividade média — clima, acesso ao local e imprevistos podem mudar o prazo real.';
     } else {
       const cfg = servicosConfig[servico.value];
       if(cfg){
@@ -920,18 +954,16 @@ input[type=range]::-moz-range-thumb{width:22px; height:22px; border-radius:50%; 
         const mod = cfg.mods.find(m=>m.value===document.getElementById('genMod').value) || cfg.mods[0];
         homemDia = (m2 * mod.mult) / tipo.prod;
       }
+      if(homemDia === null){
+        prazoTxt.textContent = '—';
+        detalheTxt.textContent = 'Para "Outro / personalizado" não temos dados de produtividade — preencha os dias de cada funcionário manualmente na etapa 1.';
+        avisoTxt.textContent = '';
+        return;
+      }
+      diasEstimados = Math.max(1, Math.ceil(homemDia / numFuncionarios));
+      prazoTxt.textContent = `${diasEstimados} dia(s) útil(eis)`;
+      detalheTxt.textContent = `Cálculo: ${homemDia.toFixed(1)} homem-dia necessários ÷ ${numFuncionarios} funcionário(s) na equipe = ${diasEstimados} dia(s). Isso é uma estimativa de produtividade média — ritmo do time, acesso ao local e imprevistos podem mudar o prazo real.`;
     }
-
-    if(homemDia === null){
-      prazoTxt.textContent = '—';
-      detalheTxt.textContent = 'Para "Outro / personalizado" não temos dados de produtividade — preencha os dias de cada funcionário manualmente na etapa 1.';
-      avisoTxt.textContent = '';
-      return;
-    }
-
-    const diasEstimados = Math.max(1, Math.ceil(homemDia / numFuncionarios));
-    prazoTxt.textContent = `${diasEstimados} dia(s) útil(eis)`;
-    detalheTxt.textContent = `Cálculo: ${homemDia.toFixed(1)} homem-dia necessários ÷ ${numFuncionarios} funcionário(s) na equipe = ${diasEstimados} dia(s). Isso é uma estimativa de produtividade média — ritmo do time, acesso ao local e imprevistos podem mudar o prazo real.`;
 
     const diasInformados = empregados.length ? Math.round(empregados.reduce((s,e)=>s+e.dias,0)/empregados.length) : 0;
     if(diasInformados > 0){
