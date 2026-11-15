@@ -80,12 +80,26 @@ canvas{max-width:100%;}
 .modalCard{background:var(--surface); border-radius:20px; padding:28px; max-width:400px; width:100%; max-height:90vh; overflow-y:auto;}
 .rmBtn{background:transparent; border:1px solid var(--line); color:var(--muted); border-radius:8px; width:36px; height:36px; cursor:pointer; font-size:14px;}
 footer{text-align:center; padding-block:30px; font-size:13px; color:var(--muted);}
+.userDropdown{display:none; position:absolute; top:calc(100% + 8px); right:0; background:var(--surface); border:1px solid var(--line); border-radius:14px; padding:10px; min-width:220px; box-shadow:0 10px 30px rgba(0,0,0,.15); z-index:40; text-align:left;}
+.userDropdown.show{display:block;}
+.userDropdown .udHead{padding:8px 10px 12px; border-bottom:1px solid var(--line); margin-bottom:8px;}
+.userDropdown .udName{font-weight:700; font-size:14px;}
+.userDropdown .udEmail{font-size:12px; color:var(--muted);}
+.userDropdown a, .userDropdown button{display:block; width:100%; text-align:left; padding:9px 10px; border-radius:8px; border:none; background:transparent; color:var(--ink); font-size:14px; font-family:inherit; cursor:pointer; text-decoration:none;}
+.userDropdown a:hover, .userDropdown button:hover{background:var(--bg);}
+.userDropdown .udLogout{color:#e5484d;}
+.visaoToggle{display:flex; gap:8px; margin-bottom:20px;}
+.visaoToggle button{flex:1; padding:10px; border-radius:10px; border:1px solid var(--line); background:var(--surface); color:var(--muted); cursor:pointer; font-family:inherit; font-weight:700; font-size:13px;}
+.visaoToggle button.active{background:var(--accent); color:var(--accent-ink); border-color:var(--accent);}
 </style>
 
 <div class="wrap">
   <div class="topnav">
     <a href="index.html" class="navlink">← Calculadora de orçamento</a>
-    <span class="small" id="authStatus"></span>
+    <div id="userMenuWrap" style="display:none; position:relative;">
+      <button class="btn secondary small" id="userMenuBtn" type="button"></button>
+      <div id="userMenuDropdown" class="userDropdown"></div>
+    </div>
   </div>
   <div class="hero">
     <h1>Meus Gastos</h1>
@@ -102,6 +116,12 @@ footer{text-align:center; padding-block:30px; font-size:13px; color:var(--muted)
 </div>
 
 <div class="wrap" id="appWrap" style="display:none;">
+
+  <div class="visaoToggle">
+    <button type="button" id="btnVisaoTudo" class="active">🔗 Tudo junto</button>
+    <button type="button" id="btnVisaoPessoal">🏠 Só pessoal</button>
+    <button type="button" id="btnVisaoTrabalho">🏗️ Só trabalho</button>
+  </div>
 
   <div class="statRow">
     <div class="statTile ganho"><div class="label">Ganhos no mês</div><div class="value" id="statGanhos">R$ 0</div></div>
@@ -292,23 +312,66 @@ footer{text-align:center; padding-block:30px; font-size:13px; color:var(--muted)
 
   document.getElementById('openAuthBtn').addEventListener('click', ()=> authModal.classList.add('show'));
 
+  function nomeDeExibicao(session){
+    const meta = session.user.user_metadata || {};
+    return meta.full_name || meta.name || session.user.email.split('@')[0];
+  }
+
   function atualizarUiAuth(session){
     sessaoAtual = session;
-    const statusEl = document.getElementById('authStatus');
+    const userMenuWrap = document.getElementById('userMenuWrap');
+    const userMenuBtn = document.getElementById('userMenuBtn');
+    const userMenuDropdown = document.getElementById('userMenuDropdown');
     if(session){
-      statusEl.innerHTML = `${session.user.email} · <a href="#" id="logoutLink">sair</a>`;
-      document.getElementById('logoutLink').addEventListener('click', async e=>{ e.preventDefault(); await sb.auth.signOut(); });
+      userMenuWrap.style.display = 'inline-block';
+      const nome = nomeDeExibicao(session);
+      const avatar = (session.user.user_metadata||{}).avatar_url;
+      userMenuBtn.innerHTML = avatar
+        ? `<img src="${avatar}" style="width:18px; height:18px; border-radius:50%; margin-right:6px; vertical-align:middle;">${nome} ▾`
+        : `👤 ${nome} ▾`;
+      userMenuDropdown.innerHTML = `
+        <div class="udHead"><div class="udName">${nome}</div><div class="udEmail">${session.user.email}</div></div>
+        <a href="index.html">🏗️ Calculadora de orçamento</a>
+        <a href="gastos.html">💰 Meus gastos pessoais</a>
+        <button type="button" class="udLogout" id="udLogoutBtn">🚪 Sair da conta</button>
+      `;
+      document.getElementById('udLogoutBtn').addEventListener('click', async ()=>{ await sb.auth.signOut(); });
       document.getElementById('loginGateWrap').style.display = 'none';
       document.getElementById('appWrap').style.display = 'block';
       carregarTudo();
     } else {
-      statusEl.textContent = '';
+      userMenuWrap.style.display = 'none';
       document.getElementById('loginGateWrap').style.display = 'block';
       document.getElementById('appWrap').style.display = 'none';
     }
   }
+  document.getElementById('userMenuBtn').addEventListener('click', ()=>{
+    document.getElementById('userMenuDropdown').classList.toggle('show');
+  });
+  document.addEventListener('click', e=>{
+    const wrap = document.getElementById('userMenuWrap');
+    if(wrap && !wrap.contains(e.target)) document.getElementById('userMenuDropdown').classList.remove('show');
+  });
   sb.auth.onAuthStateChange((_e, session)=> atualizarUiAuth(session));
   sb.auth.getSession().then(({data})=> atualizarUiAuth(data.session));
+
+  // ---- Visão: pessoal / trabalho / tudo ----
+  let visaoAtual = 'tudo';
+  function aplicarFiltroVisao(lista){
+    if(visaoAtual==='trabalho') return lista.filter(l=>l.categoria==='Obra/Trabalho');
+    if(visaoAtual==='pessoal') return lista.filter(l=>l.categoria!=='Obra/Trabalho');
+    return lista;
+  }
+  function setVisao(v){
+    visaoAtual = v;
+    document.getElementById('btnVisaoTudo').classList.toggle('active', v==='tudo');
+    document.getElementById('btnVisaoPessoal').classList.toggle('active', v==='pessoal');
+    document.getElementById('btnVisaoTrabalho').classList.toggle('active', v==='trabalho');
+    renderLista(); renderCategorias(); renderStats(); renderEvolucao();
+  }
+  document.getElementById('btnVisaoTudo').addEventListener('click', ()=> setVisao('tudo'));
+  document.getElementById('btnVisaoPessoal').addEventListener('click', ()=> setVisao('pessoal'));
+  document.getElementById('btnVisaoTrabalho').addEventListener('click', ()=> setVisao('trabalho'));
 
   // ---- Lançamentos ----
   let todosLancamentos = [];
@@ -348,7 +411,7 @@ footer{text-align:center; padding-block:30px; font-size:13px; color:var(--muted)
 
   function renderLista(){
     const mes = document.getElementById('mesFiltro').value;
-    const itens = todosLancamentos.filter(l=>doMes(l.data)===mes);
+    const itens = getLancamentos().filter(l=>doMes(l.data)===mes);
     const body = document.getElementById('listaBody');
     if(!itens.length){
       body.innerHTML = '';
@@ -374,7 +437,7 @@ footer{text-align:center; padding-block:30px; font-size:13px; color:var(--muted)
 
   function renderStats(){
     const mes = document.getElementById('mesFiltro').value;
-    const itens = todosLancamentos.filter(l=>doMes(l.data)===mes);
+    const itens = getLancamentos().filter(l=>doMes(l.data)===mes);
     const ganhos = itens.filter(l=>l.tipo==='ganho').reduce((s,l)=>s+Number(l.valor),0);
     const gastos = itens.filter(l=>l.tipo==='gasto').reduce((s,l)=>s+Number(l.valor),0);
     document.getElementById('statGanhos').textContent = fmt(ganhos);
@@ -384,7 +447,7 @@ footer{text-align:center; padding-block:30px; font-size:13px; color:var(--muted)
 
   function renderCategorias(){
     const mes = document.getElementById('mesFiltro').value;
-    const itens = todosLancamentos.filter(l=>doMes(l.data)===mes && l.tipo==='gasto');
+    const itens = getLancamentos().filter(l=>doMes(l.data)===mes && l.tipo==='gasto');
     const porCategoria = {};
     itens.forEach(l=>{ porCategoria[l.categoria] = (porCategoria[l.categoria]||0) + Number(l.valor); });
     const max = Math.max(1, ...Object.values(porCategoria));
@@ -410,7 +473,7 @@ footer{text-align:center; padding-block:30px; font-size:13px; color:var(--muted)
     for(let m=0; m<=mesAtualNum; m++){
       const mesStr = `${anoAtual}-${String(m+1).padStart(2,'0')}`;
       labels.push(mesStr);
-      const itens = todosLancamentos.filter(l=>doMes(l.data)===mesStr);
+      const itens = getLancamentos().filter(l=>doMes(l.data)===mesStr);
       const g = itens.filter(l=>l.tipo==='ganho').reduce((s,l)=>s+Number(l.valor),0);
       const d = itens.filter(l=>l.tipo==='gasto').reduce((s,l)=>s+Number(l.valor),0);
       ganhosPorMes.push(g); gastosPorMes.push(d); saldoPorMes.push(g-d);
@@ -451,8 +514,8 @@ footer{text-align:center; padding-block:30px; font-size:13px; color:var(--muted)
     // categoria que mais mudou entre o primeiro e o último mês
     const mesInicioStr = labels[0], mesFimStr = labels[labels.length-1];
     const catInicio = {}, catFim = {};
-    todosLancamentos.filter(l=>l.tipo==='gasto' && doMes(l.data)===mesInicioStr).forEach(l=> catInicio[l.categoria]=(catInicio[l.categoria]||0)+Number(l.valor));
-    todosLancamentos.filter(l=>l.tipo==='gasto' && doMes(l.data)===mesFimStr).forEach(l=> catFim[l.categoria]=(catFim[l.categoria]||0)+Number(l.valor));
+    getLancamentos().filter(l=>l.tipo==='gasto' && doMes(l.data)===mesInicioStr).forEach(l=> catInicio[l.categoria]=(catInicio[l.categoria]||0)+Number(l.valor));
+    getLancamentos().filter(l=>l.tipo==='gasto' && doMes(l.data)===mesFimStr).forEach(l=> catFim[l.categoria]=(catFim[l.categoria]||0)+Number(l.valor));
     let categoriaCausa = null, maiorDiff = 0;
     new Set([...Object.keys(catInicio), ...Object.keys(catFim)]).forEach(cat=>{
       const diff = (catFim[cat]||0) - (catInicio[cat]||0);
@@ -478,7 +541,7 @@ footer{text-align:center; padding-block:30px; font-size:13px; color:var(--muted)
     let somaGanhos=0, somaGastos=0, mesesComDados=0;
     for(let m=0; m<=mesAtualNum; m++){
       const mesStr = `${anoAtual}-${String(m+1).padStart(2,'0')}`;
-      const itens = todosLancamentos.filter(l=>doMes(l.data)===mesStr);
+      const itens = getLancamentos().filter(l=>doMes(l.data)===mesStr);
       if(!itens.length) continue;
       mesesComDados++;
       somaGanhos += itens.filter(l=>l.tipo==='ganho').reduce((s,l)=>s+Number(l.valor),0);

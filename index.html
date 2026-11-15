@@ -159,6 +159,14 @@ input[type=range]::-moz-range-thumb{width:22px; height:22px; border-radius:50%; 
 .savedItem .acoes{display:flex; gap:6px;}
 .savedItem button{font-size:12px; padding:6px 10px; border-radius:8px; border:1px solid var(--line); background:var(--surface); color:var(--ink); cursor:pointer; font-family:inherit;}
 .savedItem button.del{color:#e5484d; border-color:#e5484d;}
+.userDropdown{display:none; position:absolute; top:calc(100% + 8px); right:0; background:var(--surface); border:1px solid var(--line); border-radius:14px; padding:10px; min-width:220px; box-shadow:0 10px 30px rgba(0,0,0,.15); z-index:40; text-align:left;}
+.userDropdown.show{display:block;}
+.userDropdown .udHead{padding:8px 10px 12px; border-bottom:1px solid var(--line); margin-bottom:8px;}
+.userDropdown .udName{font-weight:700; font-size:14px;}
+.userDropdown .udEmail{font-size:12px; color:var(--muted);}
+.userDropdown a, .userDropdown button{display:block; width:100%; text-align:left; padding:9px 10px; border-radius:8px; border:none; background:transparent; color:var(--ink); font-size:14px; font-family:inherit; cursor:pointer; text-decoration:none;}
+.userDropdown a:hover, .userDropdown button:hover{background:var(--bg);}
+.userDropdown .udLogout{color:#e5484d;}
 </style>
 </head>
 <body>
@@ -167,11 +175,14 @@ input[type=range]::-moz-range-thumb{width:22px; height:22px; border-radius:50%; 
   <h1>Descubra quanto cobrar na sua próxima obra</h1>
   <p class="lead">Informe a metragem do serviço, quem vai trabalhar com você e os materiais usados. O OrçaObra calcula tudo — mão de obra, material e imposto — e entrega um orçamento pronto para mostrar ao cliente.</p>
   <a href="#calc" class="btn">Ir para a calculadora ↓</a>
-  <div style="margin-top:18px; display:flex; gap:10px; justify-content:center; flex-wrap:wrap;">
+  <div style="margin-top:18px; display:flex; gap:10px; justify-content:center; flex-wrap:wrap; position:relative;">
     <button class="btn secondary" id="openAuthBtn" type="button">👤 Entrar / Criar conta</button>
     <a href="gastos.html" class="btn secondary">💰 Meus Gastos Pessoais</a>
+    <div id="userMenuWrap" style="display:none; position:relative;">
+      <button class="btn secondary" id="userMenuBtn" type="button"></button>
+      <div id="userMenuDropdown" class="userDropdown"></div>
+    </div>
   </div>
-  <span class="small" id="authStatus" style="display:block; margin-top:8px;"></span>
   <div class="howrow">
     <div class="howcard"><div class="num">01</div><h3>Escolha o serviço</h3><p>Pintura, alvenaria, elétrica, hidráulica ou um valor por m² personalizado.</p></div>
     <div class="howcard"><div class="num">02</div><h3>Monte sua equipe</h3><p>Adicione cada funcionário com a diária que ele realmente recebe.</p></div>
@@ -244,10 +255,11 @@ input[type=range]::-moz-range-thumb{width:22px; height:22px; border-radius:50%; 
         <label for="nomeOrcamentoSalvar">Nome deste orçamento</label>
         <input id="nomeOrcamentoSalvar" type="text" placeholder="Ex: Obra João — fachada">
       </div>
-      <div class="field" style="margin-bottom:0; display:flex; align-items:flex-end;">
+      <div class="field" style="margin-bottom:0; display:flex; align-items:flex-end; gap:8px;">
         <button class="btn" id="salvarOrcamentoBtn" type="button" style="width:100%; justify-content:center;">💾 Salvar orçamento atual</button>
       </div>
     </div>
+    <button class="btn secondary small" id="novoOrcamentoBtn" type="button" style="display:none; margin-top:8px;">➕ Começar um orçamento novo (em branco)</button>
     <p class="small" id="salvarMsg"></p>
     <div class="savedList" id="savedList"></div>
   </div>
@@ -576,30 +588,76 @@ input[type=range]::-moz-range-thumb{width:22px; height:22px; border-radius:50%; 
     else { authModal.classList.remove('show'); }
   });
 
+  function nomeDeExibicao(session){
+    const meta = session.user.user_metadata || {};
+    return meta.full_name || meta.name || session.user.email.split('@')[0];
+  }
+
   function atualizarUiAuth(session){
     sessaoAtual = session;
-    const statusEl = document.getElementById('authStatus');
     const openBtn = document.getElementById('openAuthBtn');
     const savedCard = document.getElementById('savedCard');
+    const userMenuWrap = document.getElementById('userMenuWrap');
+    const userMenuBtn = document.getElementById('userMenuBtn');
+    const userMenuDropdown = document.getElementById('userMenuDropdown');
     if(session){
-      statusEl.textContent = `Logado como ${session.user.email}`;
-      openBtn.textContent = '🚪 Sair da conta';
+      openBtn.style.display = 'none';
+      userMenuWrap.style.display = 'inline-block';
+      const nome = nomeDeExibicao(session);
+      const avatar = (session.user.user_metadata||{}).avatar_url;
+      userMenuBtn.innerHTML = avatar
+        ? `<img src="${avatar}" style="width:20px; height:20px; border-radius:50%; margin-right:6px; vertical-align:middle;">${nome} ▾`
+        : `👤 ${nome} ▾`;
+      userMenuDropdown.innerHTML = `
+        <div class="udHead"><div class="udName">${nome}</div><div class="udEmail">${session.user.email}</div></div>
+        <a href="index.html">🏗️ Calculadora de orçamento</a>
+        <a href="gastos.html">💰 Meus gastos pessoais</a>
+        <button type="button" class="udLogout" id="udLogoutBtn">🚪 Sair da conta</button>
+      `;
+      document.getElementById('udLogoutBtn').addEventListener('click', async ()=>{ await sb.auth.signOut(); });
       savedCard.style.display = 'block';
       carregarOrcamentosSalvos();
     } else {
-      statusEl.textContent = 'Você não está logado — entre para salvar seus orçamentos.';
-      openBtn.textContent = '👤 Entrar / Criar conta';
+      openBtn.style.display = 'inline-flex';
+      userMenuWrap.style.display = 'none';
+      userMenuDropdown.classList.remove('show');
       savedCard.style.display = 'none';
     }
   }
 
-  document.getElementById('openAuthBtn').addEventListener('click', async ()=>{
-    if(sessaoAtual){ await sb.auth.signOut(); }
-    else { authModal.classList.add('show'); }
+  document.getElementById('openAuthBtn').addEventListener('click', ()=>{ authModal.classList.add('show'); });
+  document.getElementById('userMenuBtn').addEventListener('click', ()=>{
+    document.getElementById('userMenuDropdown').classList.toggle('show');
+  });
+  document.addEventListener('click', e=>{
+    const wrap = document.getElementById('userMenuWrap');
+    if(wrap && !wrap.contains(e.target)) document.getElementById('userMenuDropdown').classList.remove('show');
   });
 
   sb.auth.onAuthStateChange((_event, session)=> atualizarUiAuth(session));
   sb.auth.getSession().then(({data})=> atualizarUiAuth(data.session));
+
+  let orcamentoAbertoId = null;
+
+  function atualizarBotaoSalvar(){
+    const btn = document.getElementById('salvarOrcamentoBtn');
+    const novoBtn = document.getElementById('novoOrcamentoBtn');
+    if(orcamentoAbertoId){
+      btn.textContent = '💾 Salvar alterações neste orçamento';
+      novoBtn.style.display = 'inline-flex';
+    } else {
+      btn.textContent = '💾 Salvar orçamento atual';
+      novoBtn.style.display = 'none';
+    }
+  }
+
+  document.getElementById('novoOrcamentoBtn').addEventListener('click', ()=>{
+    orcamentoAbertoId = null;
+    document.getElementById('nomeOrcamentoSalvar').value = '';
+    document.getElementById('salvarMsg').textContent = 'Pronto, comece a preencher um orçamento novo.';
+    document.getElementById('salvarMsg').style.color = 'var(--muted)';
+    atualizarBotaoSalvar();
+  });
 
   document.getElementById('salvarOrcamentoBtn').addEventListener('click', async ()=>{
     const nome = document.getElementById('nomeOrcamentoSalvar').value.trim();
@@ -607,14 +665,23 @@ input[type=range]::-moz-range-thumb{width:22px; height:22px; border-radius:50%; 
     if(!nome){ msg.textContent = 'Dê um nome para esse orçamento antes de salvar.'; msg.style.color = '#e5484d'; return; }
     if(!sessaoAtual){ msg.textContent = 'Entre na sua conta primeiro.'; return; }
     msg.textContent = 'Salvando...';
-    const { error } = await sb.from('orcamentos').insert({
-      user_id: sessaoAtual.user.id,
-      nome,
-      dados: getState()
-    });
-    if(error){ msg.textContent = 'Erro ao salvar: ' + error.message; msg.style.color = '#e5484d'; return; }
-    msg.textContent = 'Orçamento salvo!'; msg.style.color = 'var(--good)';
-    document.getElementById('nomeOrcamentoSalvar').value = '';
+    if(orcamentoAbertoId){
+      const { error } = await sb.from('orcamentos')
+        .update({ nome, dados: getState(), updated_at: new Date().toISOString() })
+        .eq('id', orcamentoAbertoId);
+      if(error){ msg.textContent = 'Erro ao salvar: ' + error.message; msg.style.color = '#e5484d'; return; }
+      msg.textContent = 'Alterações salvas neste orçamento!'; msg.style.color = 'var(--good)';
+    } else {
+      const { data, error } = await sb.from('orcamentos').insert({
+        user_id: sessaoAtual.user.id,
+        nome,
+        dados: getState()
+      }).select('id').single();
+      if(error){ msg.textContent = 'Erro ao salvar: ' + error.message; msg.style.color = '#e5484d'; return; }
+      orcamentoAbertoId = data.id;
+      msg.textContent = 'Orçamento salvo! Agora pode continuar editando e salvar as alterações nele.'; msg.style.color = 'var(--good)';
+    }
+    atualizarBotaoSalvar();
     carregarOrcamentosSalvos();
   });
 
@@ -640,6 +707,10 @@ input[type=range]::-moz-range-thumb{width:22px; height:22px; border-radius:50%; 
         const item = data.find(d=>d.id===btn.dataset.abrir);
         setState(item.dados);
         document.getElementById('nomeOrcamentoSalvar').value = item.nome;
+        orcamentoAbertoId = item.id;
+        atualizarBotaoSalvar();
+        document.getElementById('salvarMsg').textContent = `Editando "${item.nome}" — altere o que precisar e clique em "Salvar alterações".`;
+        document.getElementById('salvarMsg').style.color = 'var(--info, #3b82f6)';
         document.getElementById('calc').scrollIntoView({behavior:'smooth'});
       });
     });
@@ -647,6 +718,7 @@ input[type=range]::-moz-range-thumb{width:22px; height:22px; border-radius:50%; 
       btn.addEventListener('click', async ()=>{
         if(!confirm('Excluir este orçamento salvo?')) return;
         await sb.from('orcamentos').delete().eq('id', btn.dataset.del);
+        if(orcamentoAbertoId === btn.dataset.del){ orcamentoAbertoId = null; atualizarBotaoSalvar(); }
         carregarOrcamentosSalvos();
       });
     });
