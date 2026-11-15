@@ -366,6 +366,7 @@ input[type=range]::-moz-range-thumb{width:22px; height:22px; border-radius:50%; 
       <thead><tr><th>Item</th><th>Detalhe</th><th style="text-align:right;">Valor</th></tr></thead>
       <tbody id="clientBody"></tbody>
     </table>
+    <div class="alertBox" id="nomesAlert">⚠️ Antes de baixar ou compartilhar, preencha o <strong>seu nome</strong> e o <strong>nome do cliente</strong> lá em cima, em "Dados do orçamento" — isso aparece no documento.</div>
     <div class="exportBtns">
       <button class="btn secondary" id="copyClientBtn" type="button">📋 Copiar texto</button>
       <button class="btn secondary" id="imgClientBtn" type="button">🖼️ Baixar imagem</button>
@@ -826,7 +827,20 @@ input[type=range]::-moz-range-thumb{width:22px; height:22px; border-radius:50%; 
 
   function setExportStatus(msg){ document.getElementById('exportStatus').textContent = msg; }
 
+  function nomesPreenchidos(){
+    return !!document.getElementById('nomeProfissional').value.trim() && !!document.getElementById('nomeCliente').value.trim();
+  }
+  function bloquearSeFaltarNome(){
+    if(nomesPreenchidos()) return false;
+    const alertEl = document.getElementById('nomesAlert');
+    alertEl.classList.add('show');
+    alertEl.scrollIntoView({behavior:'smooth', block:'center'});
+    setExportStatus('Preencha seu nome e o nome do cliente antes de baixar ou compartilhar.');
+    return true;
+  }
+
   document.getElementById('imgClientBtn').addEventListener('click', async ()=>{
+    if(bloquearSeFaltarNome()) return;
     setExportStatus('Gerando imagem...');
     try{
       const canvas = await gerarCanvasCliente();
@@ -841,6 +855,7 @@ input[type=range]::-moz-range-thumb{width:22px; height:22px; border-radius:50%; 
   });
 
   document.getElementById('pdfClientBtn').addEventListener('click', async ()=>{
+    if(bloquearSeFaltarNome()) return;
     setExportStatus('Gerando PDF...');
     try{
       const canvas = await gerarCanvasCliente();
@@ -854,6 +869,7 @@ input[type=range]::-moz-range-thumb{width:22px; height:22px; border-radius:50%; 
   });
 
   document.getElementById('shareClientBtn').addEventListener('click', async ()=>{
+    if(bloquearSeFaltarNome()) return;
     setExportStatus('Preparando para compartilhar...');
     try{
       const canvas = await gerarCanvasCliente();
@@ -940,6 +956,10 @@ input[type=range]::-moz-range-thumb{width:22px; height:22px; border-radius:50%; 
     const imposto = comMargem * impostoPct/100;
     const total = comMargem + imposto;
 
+    const nomesAlertEl = document.getElementById('nomesAlert');
+    if(!nomesPreenchidos()) nomesAlertEl.classList.add('show');
+    else nomesAlertEl.classList.remove('show');
+
     custoRealAtual = custoReal;
     document.getElementById('custoRealTxt').textContent = fmt(custoReal);
     const sliderMax = Math.max(Math.round((total*1.6)/10)*10, Math.round((custoReal*2.5)/10)*10, 100);
@@ -971,6 +991,11 @@ input[type=range]::-moz-range-thumb{width:22px; height:22px; border-radius:50%; 
 
   ['metragem','valorM2','materialPct','imposto','margem','marmitaValor','distancia','diasDeslocamento','consumo','precoCombustivel','diasAltura','valorDiariaEquip','adicionalRisco','nomeProfissional','nomeCliente'].forEach(id=>{
     document.getElementById(id).addEventListener('input', render);
+  });
+  ['nomeProfissional','nomeCliente'].forEach(id=>{
+    document.getElementById(id).addEventListener('input', ()=>{
+      if(nomesPreenchidos()) document.getElementById('nomesAlert').classList.remove('show');
+    });
   });
 
   document.getElementById('copyBtn').addEventListener('click', async ()=>{
