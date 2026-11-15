@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>OrçaObra — Calculadora de orçamento para obras</title>
+<meta name="claude:viewport-fit-sides" content="cover">
 <meta name="description" content="Calculadora de orçamento de obra para pintores, pedreiros, eletricistas, encanadores e arquitetos: mão de obra, materiais, deslocamento e lucro, tudo em um boletim.">
 <meta name="theme-color" content="#d97b3f">
 <link rel="manifest" href="manifest.json">
@@ -13,8 +14,6 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@600;700&display=swap" rel="stylesheet">
 <style>
-:root{padding:0;}
-body{margin:0;}
 /* layout: landing hero explica o app, botao leva ate a calculadora em cartoes sequenciais (servico -> equipe -> materiais -> resultado) */
 :root{
   --bg:#f7f6f2;
@@ -148,10 +147,11 @@ input[type=range]::-moz-range-thumb{width:22px; height:22px; border-radius:50%; 
 .gaugeMarker{position:absolute; top:-5px; width:4px; height:26px; background:var(--ink); border-radius:2px; transform:translateX(-2px); transition:left .15s;}
 .gaugeLabels{display:flex; justify-content:space-between; font-size:11px; color:var(--muted); margin-top:4px;}
 .valorCobradoBig{font-family:'Space Grotesk'; font-size:26px; font-weight:800; color:var(--ink);}
+.exportBtns{display:flex; flex-wrap:wrap; gap:10px; margin-top:20px;}
+.exportBtns .btn{flex:1; min-width:160px; justify-content:center;}
 </style>
 </head>
 <body>
-
 <div class="wrap hero">
   <span class="eyebrow">Para pintores, pedreiros, eletricistas e arquitetos</span>
   <h1>Descubra quanto cobrar na sua próxima obra</h1>
@@ -170,6 +170,21 @@ input[type=range]::-moz-range-thumb{width:22px; height:22px; border-radius:50%; 
 <div class="wrap" id="calc">
   <h2 class="calcTitle" style="text-align:center;">Calculadora de orçamento</h2>
   <p class="calcSub" style="text-align:center;">Preencha os campos abaixo. Os valores vão sendo somados automaticamente no boletim final.</p>
+
+  <div class="card">
+    <h2>Dados do orçamento</h2>
+    <p class="stepnote">Esses nomes aparecem no resumo que você envia para o cliente.</p>
+    <div class="grid2">
+      <div class="field">
+        <label for="nomeProfissional">Seu nome / nome da empresa</label>
+        <input id="nomeProfissional" type="text" placeholder="Ex: João Silva — Pinturas JS">
+      </div>
+      <div class="field">
+        <label for="nomeCliente">Nome do cliente</label>
+        <input id="nomeCliente" type="text" placeholder="Ex: Maria Oliveira">
+      </div>
+    </div>
+  </div>
 
   <div class="card">
     <h2>1. Serviço e metragem</h2>
@@ -345,13 +360,19 @@ input[type=range]::-moz-range-thumb{width:22px; height:22px; border-radius:50%; 
   <div class="result">
     <div class="resultHead">
       <h2>🧾 Resumo para o cliente</h2>
-      <button class="btn secondary" id="copyClientBtn" type="button">Copiar para o cliente</button>
     </div>
-    <p class="stepnote">Versão simplificada, sem mostrar sua margem de lucro — é essa que você envia ou mostra para o cliente. Tire um print da tela (ou use "Copiar") para enviar como imagem ou texto.</p>
+    <p class="stepnote">Versão simplificada, sem mostrar sua margem de lucro — é essa que você envia para o cliente.</p>
     <table class="boletim">
       <thead><tr><th>Item</th><th>Detalhe</th><th style="text-align:right;">Valor</th></tr></thead>
       <tbody id="clientBody"></tbody>
     </table>
+    <div class="exportBtns">
+      <button class="btn secondary" id="copyClientBtn" type="button">📋 Copiar texto</button>
+      <button class="btn secondary" id="imgClientBtn" type="button">🖼️ Baixar imagem</button>
+      <button class="btn secondary" id="pdfClientBtn" type="button">📄 Baixar PDF</button>
+      <button class="btn" id="shareClientBtn" type="button">📲 Compartilhar (WhatsApp)</button>
+    </div>
+    <p class="small" id="exportStatus"></p>
   </div>
 
   <div class="pwaHint">
@@ -361,6 +382,8 @@ input[type=range]::-moz-range-thumb{width:22px; height:22px; border-radius:50%; 
 
 <footer>OrçaObra — ferramenta de apoio. Os valores de referência são estimativas; sempre confira preços locais atualizados.</footer>
 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script>
 (function(){
   const servico = document.getElementById('servico');
@@ -727,6 +750,7 @@ input[type=range]::-moz-range-thumb{width:22px; height:22px; border-radius:50%; 
   }
   sliderEl.addEventListener('input', ()=>{ sliderTouched = true; updateProfitDisplay(); });
 
+  let ultimoRowsCliente = [], ultimoValorCobradoCliente = 0, ultimoServicoLabel = '';
   function renderClientSummary(valorCobrado){
     const isPintura = servico.value === 'pintura';
     const servicoLabel = servico.options[servico.selectedIndex].text.split(' — ')[0];
@@ -737,6 +761,8 @@ input[type=range]::-moz-range-thumb{width:22px; height:22px; border-radius:50%; 
     const totalMarmitas = empregados.reduce((s,e)=> s + marmitaValor*e.dias, 0);
     const pct = (+document.getElementById('materialPct').value || 0) / 100;
     const valorMateriais = materialMedio() * pct * m2;
+    const nomeProfissional = document.getElementById('nomeProfissional').value.trim() || 'Profissional';
+    const nomeCliente = document.getElementById('nomeCliente').value.trim() || 'Cliente';
     const rows = [
       [servicoLabel, `${m2} m²`, fmt(valorServico)],
       ['Mão de obra e equipe', `${empregados.length} profissional(is), com alimentação`, fmt(maoDeObra+totalMarmitas)],
@@ -746,9 +772,108 @@ input[type=range]::-moz-range-thumb{width:22px; height:22px; border-radius:50%; 
     document.getElementById('clientBody').innerHTML =
       rows.map(r=>`<tr><td>${r[0]}</td><td>${r[1]}</td><td style="text-align:right;">${r[2]}</td></tr>`).join('') +
       `<tr class="total"><td colspan="2">Valor total do orçamento</td><td style="text-align:right;">${fmt(valorCobrado)}</td></tr>`;
-    window.__resumoCliente = `Orçamento — ${servicoLabel} (${m2} m²)\n` +
-      rows.map(r=>`${r[0]}: ${r[2]}`).join('\n') + `\nVALOR TOTAL: ${fmt(valorCobrado)}`;
+    window.__resumoCliente = `Orçamento de ${nomeProfissional}\nPara: ${nomeCliente}\nServiço: ${servicoLabel} (${m2} m²)\n\n` +
+      rows.map(r=>`${r[0]}: ${r[2]}`).join('\n') + `\n\nVALOR TOTAL: ${fmt(valorCobrado)}`;
+    ultimoRowsCliente = rows;
+    ultimoValorCobradoCliente = valorCobrado;
+    ultimoServicoLabel = servicoLabel;
   }
+
+  function construirNoExport(){
+    const nomeProfissional = document.getElementById('nomeProfissional').value.trim() || 'Profissional';
+    const nomeCliente = document.getElementById('nomeCliente').value.trim() || 'Cliente';
+    const hoje = new Date().toLocaleDateString('pt-BR');
+    const node = document.createElement('div');
+    node.style.cssText = 'position:fixed; left:-9999px; top:0; width:760px; background:#ffffff; color:#1f2a24; font-family:Inter,system-ui,sans-serif; padding:40px;';
+    node.innerHTML = `
+      <div style="display:flex; justify-content:space-between; align-items:flex-start; border-bottom:3px solid #d97b3f; padding-bottom:16px; margin-bottom:24px;">
+        <div>
+          <div style="font-family:'Space Grotesk',sans-serif; font-size:24px; font-weight:800;">Orçamento de Serviço</div>
+          <div style="font-size:13px; color:#5c6b63; margin-top:4px;">Emitido em ${hoje}</div>
+        </div>
+        <div style="text-align:right; font-size:13px; color:#5c6b63;">
+          <div><strong style="color:#1f2a24;">De:</strong> ${nomeProfissional}</div>
+          <div><strong style="color:#1f2a24;">Para:</strong> ${nomeCliente}</div>
+        </div>
+      </div>
+      <div style="font-size:14px; color:#5c6b63; margin-bottom:10px;">Serviço: <strong style="color:#1f2a24;">${ultimoServicoLabel}</strong></div>
+      <table style="width:100%; border-collapse:collapse; font-size:14px;">
+        <thead><tr>
+          <th style="text-align:left; padding:8px 6px; border-bottom:1px solid #e3ddd1; color:#5c6b63; font-size:12px; text-transform:uppercase;">Item</th>
+          <th style="text-align:left; padding:8px 6px; border-bottom:1px solid #e3ddd1; color:#5c6b63; font-size:12px; text-transform:uppercase;">Detalhe</th>
+          <th style="text-align:right; padding:8px 6px; border-bottom:1px solid #e3ddd1; color:#5c6b63; font-size:12px; text-transform:uppercase;">Valor</th>
+        </tr></thead>
+        <tbody>
+          ${ultimoRowsCliente.map(r=>`<tr><td style="padding:10px 6px; border-bottom:1px solid #e3ddd1;">${r[0]}</td><td style="padding:10px 6px; border-bottom:1px solid #e3ddd1; color:#5c6b63;">${r[1]}</td><td style="padding:10px 6px; border-bottom:1px solid #e3ddd1; text-align:right;">${r[2]}</td></tr>`).join('')}
+          <tr><td colspan="2" style="padding:18px 6px 0; font-weight:800; font-size:18px; color:#d97b3f;">Valor total do orçamento</td><td style="padding:18px 6px 0; font-weight:800; font-size:18px; color:#d97b3f; text-align:right;">${fmt(ultimoValorCobradoCliente)}</td></tr>
+        </tbody>
+      </table>
+      <div style="margin-top:28px; font-size:12px; color:#5c6b63;">Orçamento gerado com OrçaObra.</div>
+    `;
+    document.body.appendChild(node);
+    return node;
+  }
+
+  async function gerarCanvasCliente(){
+    const node = construirNoExport();
+    try{
+      const canvas = await html2canvas(node, {scale:2, backgroundColor:'#ffffff'});
+      return canvas;
+    } finally {
+      node.remove();
+    }
+  }
+
+  function setExportStatus(msg){ document.getElementById('exportStatus').textContent = msg; }
+
+  document.getElementById('imgClientBtn').addEventListener('click', async ()=>{
+    setExportStatus('Gerando imagem...');
+    try{
+      const canvas = await gerarCanvasCliente();
+      canvas.toBlob(blob=>{
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url; a.download = 'orcamento.png'; a.click();
+        setTimeout(()=>URL.revokeObjectURL(url), 2000);
+        setExportStatus('Imagem baixada!');
+      }, 'image/png');
+    }catch(e){ setExportStatus('Não foi possível gerar a imagem.'); }
+  });
+
+  document.getElementById('pdfClientBtn').addEventListener('click', async ()=>{
+    setExportStatus('Gerando PDF...');
+    try{
+      const canvas = await gerarCanvasCliente();
+      const { jsPDF } = window.jspdf;
+      const w = canvas.width/2, h = canvas.height/2;
+      const pdf = new jsPDF({ unit:'pt', format:[w, h] });
+      pdf.addImage(canvas.toDataURL('image/png'), 'PNG', 0, 0, w, h);
+      pdf.save('orcamento.pdf');
+      setExportStatus('PDF baixado!');
+    }catch(e){ setExportStatus('Não foi possível gerar o PDF.'); }
+  });
+
+  document.getElementById('shareClientBtn').addEventListener('click', async ()=>{
+    setExportStatus('Preparando para compartilhar...');
+    try{
+      const canvas = await gerarCanvasCliente();
+      canvas.toBlob(async blob=>{
+        const file = new File([blob], 'orcamento.png', { type:'image/png' });
+        if(navigator.canShare && navigator.canShare({ files:[file] })){
+          try{
+            await navigator.share({ files:[file], title:'Orçamento', text: window.__resumoCliente });
+            setExportStatus('Compartilhado!');
+          }catch(e){ setExportStatus('Compartilhamento cancelado.'); }
+        } else {
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url; a.download = 'orcamento.png'; a.click();
+          setTimeout(()=>URL.revokeObjectURL(url), 2000);
+          setExportStatus('Seu navegador não suporta compartilhar direto — a imagem foi baixada, é só anexar no WhatsApp.');
+        }
+      }, 'image/png');
+    }catch(e){ setExportStatus('Não foi possível preparar o compartilhamento.'); }
+  });
 
   function render(){
     const isPintura = servico.value === 'pintura';
@@ -844,7 +969,7 @@ input[type=range]::-moz-range-thumb{width:22px; height:22px; border-radius:50%; 
       rows.map(r=>`${r[0]}: ${r[2]}`).join('\n') + `\nTOTAL: ${fmt(total)}`;
   }
 
-  ['metragem','valorM2','materialPct','imposto','margem','marmitaValor','distancia','diasDeslocamento','consumo','precoCombustivel','diasAltura','valorDiariaEquip','adicionalRisco'].forEach(id=>{
+  ['metragem','valorM2','materialPct','imposto','margem','marmitaValor','distancia','diasDeslocamento','consumo','precoCombustivel','diasAltura','valorDiariaEquip','adicionalRisco','nomeProfissional','nomeCliente'].forEach(id=>{
     document.getElementById(id).addEventListener('input', render);
   });
 
