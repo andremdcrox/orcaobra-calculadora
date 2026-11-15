@@ -343,6 +343,14 @@ input[type=range]::-moz-range-thumb{width:22px; height:22px; border-radius:50%; 
     </table>
   </div>
 
+  <div class="card">
+    <h2>⏱️ Prazo estimado da obra</h2>
+    <p class="stepnote">Baseado na metragem, no tipo de serviço escolhido e no tamanho da sua equipe.</p>
+    <p class="valorCobradoBig" id="prazoEstimadoTxt" style="font-size:22px;"></p>
+    <p class="small" id="prazoDetalheTxt"></p>
+    <p class="small" id="prazoAvisoTxt" style="font-weight:700;"></p>
+  </div>
+
   <div class="card profitCard">
     <h2>💰 Quanto cobrar para ter lucro <span class="profitBadge">só para você</span></h2>
     <p class="stepnote">Seu custo real (mão de obra, materiais, combustível, equipamentos e marmita) foi de <strong id="custoRealTxt"></strong>. Arraste para decidir o quanto vai cobrar do cliente.</p>
@@ -397,10 +405,10 @@ input[type=range]::-moz-range-thumb{width:22px; height:22px; border-radius:50%; 
     alvenaria:{
       tipoLabel:'Tipo de alvenaria/acabamento', modLabel:'Complexidade do reboco',
       tipos:[
-        {value:'ceramico', label:'Levantar parede — bloco cerâmico', base:45},
-        {value:'concreto', label:'Levantar parede — bloco de concreto', base:48},
-        {value:'macico', label:'Levantar parede — tijolo maciço', base:58},
-        {value:'reboco', label:'Somente reboco/chapisco', base:30}
+        {value:'ceramico', label:'Levantar parede — bloco cerâmico', base:45, prod:10},
+        {value:'concreto', label:'Levantar parede — bloco de concreto', base:48, prod:9},
+        {value:'macico', label:'Levantar parede — tijolo maciço', base:58, prod:7},
+        {value:'reboco', label:'Somente reboco/chapisco', base:30, prod:15}
       ],
       mods:[
         {value:'grosso', label:'Reboco grosso/sarrafeado', mult:1.0},
@@ -411,10 +419,10 @@ input[type=range]::-moz-range-thumb{width:22px; height:22px; border-radius:50%; 
     eletrica:{
       tipoLabel:'Tipo de instalação elétrica', modLabel:'Padrão da instalação',
       tipos:[
-        {value:'simples', label:'Tomadas e interruptores (pontos simples)', base:35},
-        {value:'embutir', label:'Embutir conduítes em alvenaria nova', base:45},
-        {value:'quadro', label:'Padrão de entrada/quadro de distribuição', base:60},
-        {value:'reforma', label:'Troca/reforma de fiação existente', base:50}
+        {value:'simples', label:'Tomadas e interruptores (pontos simples)', base:35, prod:15},
+        {value:'embutir', label:'Embutir conduítes em alvenaria nova', base:45, prod:8},
+        {value:'quadro', label:'Padrão de entrada/quadro de distribuição', base:60, prod:5},
+        {value:'reforma', label:'Troca/reforma de fiação existente', base:50, prod:10}
       ],
       mods:[
         {value:'residencial', label:'Residencial padrão', mult:1.0},
@@ -425,10 +433,10 @@ input[type=range]::-moz-range-thumb{width:22px; height:22px; border-radius:50%; 
     hidraulica:{
       tipoLabel:'Tipo de instalação hidráulica', modLabel:'Padrão da obra',
       tipos:[
-        {value:'fria', label:'Tubulação de água fria (PVC)', base:35},
-        {value:'friaquente', label:'Água fria + quente (PPR/CPVC)', base:55},
-        {value:'esgoto', label:'Esgoto/águas pluviais', base:45},
-        {value:'banheiro', label:'Reforma completa de banheiro', base:65}
+        {value:'fria', label:'Tubulação de água fria (PVC)', base:35, prod:10},
+        {value:'friaquente', label:'Água fria + quente (PPR/CPVC)', base:55, prod:8},
+        {value:'esgoto', label:'Esgoto/águas pluviais', base:45, prod:9},
+        {value:'banheiro', label:'Reforma completa de banheiro', base:65, prod:4}
       ],
       mods:[
         {value:'residencial', label:'Residencial padrão', mult:1.0},
@@ -439,10 +447,10 @@ input[type=range]::-moz-range-thumb{width:22px; height:22px; border-radius:50%; 
     gesso:{
       tipoLabel:'Tipo de gesso/drywall', modLabel:'Finalidade',
       tipos:[
-        {value:'forroGesso', label:'Forro de gesso liso', base:30},
-        {value:'forroDrywall', label:'Forro de drywall (placa standard)', base:35},
-        {value:'paredeDrywall', label:'Parede drywall (divisória)', base:45},
-        {value:'sanca', label:'Sanca/rebaixo decorativo', base:50}
+        {value:'forroGesso', label:'Forro de gesso liso', base:30, prod:12},
+        {value:'forroDrywall', label:'Forro de drywall (placa standard)', base:35, prod:15},
+        {value:'paredeDrywall', label:'Parede drywall (divisória)', base:45, prod:10},
+        {value:'sanca', label:'Sanca/rebaixo decorativo', base:50, prod:6}
       ],
       mods:[
         {value:'padrao', label:'Padrão', mult:1.0},
@@ -453,10 +461,10 @@ input[type=range]::-moz-range-thumb{width:22px; height:22px; border-radius:50%; 
     piso:{
       tipoLabel:'Tipo de piso/revestimento', modLabel:'Tipo de assentamento',
       tipos:[
-        {value:'ceramicaPadrao', label:'Cerâmica/porcelanato padrão', base:25},
-        {value:'porcelanatoGrande', label:'Porcelanato grande formato/retificado', base:35},
-        {value:'laminado', label:'Piso laminado/vinílico', base:30},
-        {value:'pedra', label:'Pedra natural/granito', base:45}
+        {value:'ceramicaPadrao', label:'Cerâmica/porcelanato padrão', base:25, prod:12},
+        {value:'porcelanatoGrande', label:'Porcelanato grande formato/retificado', base:35, prod:8},
+        {value:'laminado', label:'Piso laminado/vinílico', base:30, prod:20},
+        {value:'pedra', label:'Pedra natural/granito', base:45, prod:6}
       ],
       mods:[
         {value:'reto', label:'Assentamento reto', mult:1.0},
@@ -473,6 +481,8 @@ input[type=range]::-moz-range-thumb{width:22px; height:22px; border-radius:50%; 
     textura:{interno:40, externo:45}
   };
   const tomMultiplier = {claro:1.0, medio:1.15, escuro:1.3};
+  const tintaProdutividade = {latex:25, acrilica:20, esmalte:12, emborrachada:15, textura:10};
+  const tomProdMultiplier = {claro:1.0, medio:0.85, escuro:0.7};
 
   let areasPintura = [
     {ambiente:'interno', tinta:'acrilica', tom:'claro', m2:40}
@@ -894,6 +904,52 @@ input[type=range]::-moz-range-thumb{width:22px; height:22px; border-radius:50%; 
     }catch(e){ setExportStatus('Não foi possível preparar o compartilhamento.'); }
   });
 
+  function calcularPrazo(isPintura, m2){
+    const numFuncionarios = empregados.length || 1;
+    const prazoTxt = document.getElementById('prazoEstimadoTxt');
+    const detalheTxt = document.getElementById('prazoDetalheTxt');
+    const avisoTxt = document.getElementById('prazoAvisoTxt');
+    let homemDia = null;
+
+    if(isPintura){
+      homemDia = areasPintura.reduce((s,a)=> s + a.m2 / (tintaProdutividade[a.tinta] * tomProdMultiplier[a.tom]), 0);
+    } else {
+      const cfg = servicosConfig[servico.value];
+      if(cfg){
+        const tipo = cfg.tipos.find(t=>t.value===document.getElementById('genTipo').value) || cfg.tipos[0];
+        const mod = cfg.mods.find(m=>m.value===document.getElementById('genMod').value) || cfg.mods[0];
+        homemDia = (m2 * mod.mult) / tipo.prod;
+      }
+    }
+
+    if(homemDia === null){
+      prazoTxt.textContent = '—';
+      detalheTxt.textContent = 'Para "Outro / personalizado" não temos dados de produtividade — preencha os dias de cada funcionário manualmente na etapa 1.';
+      avisoTxt.textContent = '';
+      return;
+    }
+
+    const diasEstimados = Math.max(1, Math.ceil(homemDia / numFuncionarios));
+    prazoTxt.textContent = `${diasEstimados} dia(s) útil(eis)`;
+    detalheTxt.textContent = `Cálculo: ${homemDia.toFixed(1)} homem-dia necessários ÷ ${numFuncionarios} funcionário(s) na equipe = ${diasEstimados} dia(s). Isso é uma estimativa de produtividade média — ritmo do time, acesso ao local e imprevistos podem mudar o prazo real.`;
+
+    const diasInformados = empregados.length ? Math.round(empregados.reduce((s,e)=>s+e.dias,0)/empregados.length) : 0;
+    if(diasInformados > 0){
+      if(diasInformados < diasEstimados){
+        avisoTxt.textContent = `⚠️ Você colocou em média ${diasInformados} dia(s) de diária para a equipe, mas o prazo estimado é de ${diasEstimados} dia(s). Considere aumentar os dias/diárias dos funcionários na etapa 1, senão o orçamento pode ficar baixo.`;
+        avisoTxt.style.color = '#e5484d';
+      } else if(diasInformados > diasEstimados + 1){
+        avisoTxt.textContent = `Você colocou ${diasInformados} dia(s) de diária, mais do que o estimado (${diasEstimados} dia(s)). Pode ser uma folga de segurança — ou dá pra revisar se não está cobrando dias a mais.`;
+        avisoTxt.style.color = 'var(--muted)';
+      } else {
+        avisoTxt.textContent = `✅ Os dias que você colocou para a equipe batem com o prazo estimado.`;
+        avisoTxt.style.color = 'var(--good)';
+      }
+    } else {
+      avisoTxt.textContent = '';
+    }
+  }
+
   function render(){
     const isPintura = servico.value === 'pintura';
     if(isPintura){ document.getElementById('metragem').value = metragemPinturaTotal(); }
@@ -958,6 +1014,8 @@ input[type=range]::-moz-range-thumb{width:22px; height:22px; border-radius:50%; 
     const impostoPct = +document.getElementById('imposto').value || 0;
     const imposto = comMargem * impostoPct/100;
     const total = comMargem + imposto;
+
+    calcularPrazo(isPintura, m2);
 
     const nomesAlertEl = document.getElementById('nomesAlert');
     if(!nomesPreenchidos()) nomesAlertEl.classList.add('show');
