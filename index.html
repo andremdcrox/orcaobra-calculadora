@@ -327,14 +327,16 @@ input[type=range]::-moz-range-thumb{width:22px; height:22px; border-radius:50%; 
     <div class="field">
       <label for="margem">Margem de lucro / imprevistos (%)</label>
       <input id="margem" type="number" min="0" step="1" value="10">
+      <p class="small">Quanto maior e mais arriscada a obra, maior deve ser essa margem — ela é o que garante seu ganho de verdade. Referência: serviços pequenos/rápidos 15-20%, obras médias 20-30%, obras grandes ou de longa duração 30-40% ou mais.</p>
     </div>
   </div>
 
   <div class="result">
     <div class="resultHead">
-      <h2>📋 Boletim do orçamento</h2>
+      <h2>📋 Boletim detalhado (seus custos)</h2>
       <button class="btn secondary" id="copyBtn" type="button">Copiar resumo</button>
     </div>
+    <p class="stepnote">Isso é a conta aberta dos seus custos e da sugestão de preço pela fórmula. <strong>O valor que realmente vale é o do painel "Quanto cobrar", logo abaixo</strong> — é ele que você ajusta e que vai pro cliente.</p>
     <table class="boletim">
       <thead><tr><th>Item</th><th>Detalhe</th><th style="text-align:right;">Valor</th></tr></thead>
       <tbody id="boletimBody"></tbody>
@@ -355,6 +357,7 @@ input[type=range]::-moz-range-thumb{width:22px; height:22px; border-radius:50%; 
     <div class="gaugeBar"><div class="gaugeSeg red"></div><div class="gaugeSeg green"></div><div class="gaugeSeg blue"></div><div class="gaugeMarker" id="gaugeMarker"></div></div>
     <div class="gaugeLabels"><span>Lucro baixo</span><span>Lucro justo</span><span>Lucro ótimo</span></div>
     <p class="small" id="valorSugeridoTxt" style="margin-top:14px;"></p>
+    <p class="small" id="dicaMargemTxt"></p>
   </div>
 
   <div class="result">
@@ -968,6 +971,13 @@ input[type=range]::-moz-range-thumb{width:22px; height:22px; border-radius:50%; 
     if(!sliderTouched){ sliderEl.value = Math.round(total/10)*10; }
     else if(+sliderEl.value < sliderMin){ sliderEl.value = sliderMin; }
     document.getElementById('valorSugeridoTxt').textContent = `Valor sugerido (custo + margem de ${margemPct}% + imposto): ${fmt(total)}`;
+    let faixaMargem;
+    if(custoReal < 1000) faixaMargem = '15% a 20%';
+    else if(custoReal < 5000) faixaMargem = '20% a 30%';
+    else if(custoReal < 20000) faixaMargem = '25% a 35%';
+    else faixaMargem = '30% a 45%';
+    document.getElementById('dicaMargemTxt').textContent =
+      `Pelo porte dessa obra (custo de ${fmt(custoReal)}), o recomendado é usar uma margem de ${faixaMargem} no campo "Margem de lucro" acima — obras maiores têm mais risco e exigem mais do seu tempo.`;
     updateProfitDisplay();
 
     const rows = [
@@ -984,7 +994,7 @@ input[type=range]::-moz-range-thumb{width:22px; height:22px; border-radius:50%; 
     ];
     document.getElementById('boletimBody').innerHTML =
       rows.map(r=>`<tr><td>${r[0]}</td><td>${r[1]}</td><td style="text-align:right;">${r[2]}</td></tr>`).join('') +
-      `<tr class="total"><td colspan="2">Total a cobrar</td><td style="text-align:right;">${fmt(total)}</td></tr>`;
+      `<tr class="total"><td colspan="2">Sugestão de preço pela fórmula (ajuste no painel abaixo)</td><td style="text-align:right;">${fmt(total)}</td></tr>`;
     window.__resumo = `Orçamento ${servicoLabel} (${m2} m²)\n` +
       rows.map(r=>`${r[0]}: ${r[2]}`).join('\n') + `\nTOTAL: ${fmt(total)}`;
   }
