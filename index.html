@@ -1,0 +1,878 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>OrçaObra — Calculadora de orçamento para obras</title>
+<meta name="description" content="Calculadora de orçamento de obra para pintores, pedreiros, eletricistas, encanadores e arquitetos: mão de obra, materiais, deslocamento e lucro, tudo em um boletim.">
+<meta name="theme-color" content="#d97b3f">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon-192.png" type="image/png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@600;700&display=swap" rel="stylesheet">
+<style>
+:root{padding:0;}
+body{margin:0;}
+/* layout: landing hero explica o app, botao leva ate a calculadora em cartoes sequenciais (servico -> equipe -> materiais -> resultado) */
+:root{
+  --bg:#f7f6f2;
+  --surface:#ffffff;
+  --ink:#1f2a24;
+  --muted:#5c6b63;
+  --accent:#d97b3f;
+  --accent-ink:#ffffff;
+  --line:#e3ddd1;
+  --good:#3f8a5d;
+  color-scheme:light;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#1b2420;
+    --surface:#232e28;
+    --ink:#eef0ea;
+    --muted:#a2b0a6;
+    --accent:#e8945a;
+    --accent-ink:#1b2420;
+    --line:#39473e;
+    --good:#78c694;
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#1b2420;
+  --surface:#232e28;
+  --ink:#eef0ea;
+  --muted:#a2b0a6;
+  --accent:#e8945a;
+  --accent-ink:#1b2420;
+  --line:#39473e;
+  --good:#78c694;
+  color-scheme:dark;
+}
+*{box-sizing:border-box;}
+body{
+  margin:0;
+  background:var(--bg);
+  color:var(--ink);
+  font-family:'Inter',system-ui,sans-serif;
+  padding-left:max(16px, env(safe-area-inset-left,0px));
+  padding-right:max(16px, env(safe-area-inset-right,0px));
+}
+h1,h2,h3{font-family:'Space Grotesk',system-ui,sans-serif; text-wrap:balance; margin:0;}
+p{color:var(--muted); line-height:1.55;}
+.wrap{max-width:900px; margin:0 auto; padding-block:48px;}
+.hero{text-align:center; padding-block:56px 32px;}
+.eyebrow{display:inline-block; font-size:12px; letter-spacing:.14em; text-transform:uppercase; color:var(--accent); font-weight:700; margin-bottom:14px;}
+.hero h1{font-size:clamp(32px,6vw,52px); margin-bottom:16px;}
+.hero p.lead{font-size:18px; max-width:560px; margin:0 auto 28px;}
+.btn{
+  display:inline-flex; align-items:center; gap:8px;
+  background:var(--accent); color:var(--accent-ink);
+  border:none; border-radius:999px; padding:14px 28px;
+  font-size:16px; font-weight:700; cursor:pointer; font-family:inherit;
+  text-decoration:none;
+}
+.btn.secondary{background:transparent; color:var(--ink); border:1px solid var(--line);}
+.howrow{display:grid; grid-template-columns:repeat(3,1fr); gap:16px; margin-top:40px;}
+@media (max-width:640px){.howrow{grid-template-columns:1fr;}}
+.howcard{background:var(--surface); border:1px solid var(--line); border-radius:16px; padding:20px; text-align:left;}
+.howcard .num{font-family:'Space Grotesk'; font-size:13px; color:var(--accent); font-weight:700; margin-bottom:8px;}
+.howcard h3{font-size:17px; margin-bottom:6px;}
+.howcard p{font-size:14px; margin:0;}
+.profrow{display:flex; flex-wrap:wrap; gap:10px; justify-content:center; margin-top:28px;}
+.chip{background:var(--surface); border:1px solid var(--line); border-radius:999px; padding:8px 16px; font-size:13px; color:var(--muted);}
+
+/* calculator */
+#calc{padding-block:24px 80px;}
+.calcTitle{text-align:center; margin-bottom:8px;}
+.calcSub{text-align:center; margin-bottom:36px;}
+.card{background:var(--surface); border:1px solid var(--line); border-radius:20px; padding:28px; margin-bottom:24px;}
+.card h2{font-size:20px; margin-bottom:4px;}
+.stepnote{font-size:13px; margin-bottom:18px;}
+label{display:block; font-size:13px; font-weight:600; margin-bottom:6px; color:var(--ink);}
+input, select{
+  width:100%; padding:11px 13px; border-radius:10px; border:1px solid var(--line);
+  background:var(--bg); color:var(--ink); font-size:15px; font-family:inherit;
+}
+.grid2{display:grid; grid-template-columns:1fr 1fr; gap:14px;}
+.grid3{display:grid; grid-template-columns:2fr 1fr 1fr auto; gap:10px; align-items:end;}
+@media (max-width:640px){.grid2{grid-template-columns:1fr;} .grid3{grid-template-columns:1fr 1fr; }}
+.field{margin-bottom:14px;}
+.empRow{margin-bottom:10px; padding-bottom:10px; border-bottom:1px dashed var(--line);}
+.areaRow{display:grid; grid-template-columns:1fr 1.4fr 1fr 0.8fr auto; gap:10px; align-items:end; margin-bottom:10px; padding-bottom:10px; border-bottom:1px dashed var(--line);}
+@media (max-width:640px){.areaRow{grid-template-columns:1fr 1fr;}}
+.areaRow .rowPrice{font-size:12px; color:var(--muted); grid-column:1/-1;}
+.rmBtn{background:transparent; border:1px solid var(--line); color:var(--muted); border-radius:8px; width:40px; height:40px; cursor:pointer; font-size:16px;}
+.addBtn{background:transparent; border:1px dashed var(--accent); color:var(--accent); border-radius:10px; padding:10px 16px; font-weight:700; cursor:pointer; font-family:inherit; width:100%; margin-top:6px;}
+.matList{display:flex; flex-direction:column; gap:10px;}
+.matItem{display:flex; justify-content:space-between; gap:12px; align-items:center; background:var(--bg); border:1px solid var(--line); border-radius:12px; padding:12px 14px;}
+.matItem .name{font-weight:600; font-size:14px;}
+.matItem .range{font-size:12px; color:var(--muted);}
+.badge{font-size:11px; padding:3px 9px; border-radius:999px; background:var(--good); color:#fff; font-weight:700;}
+.badge.econ{background:var(--muted);}
+.result{background:var(--surface); border:2px solid var(--accent); border-radius:20px; padding:28px;}
+.resultHead{display:flex; justify-content:space-between; align-items:baseline; margin-bottom:18px; flex-wrap:wrap; gap:8px;}
+table.boletim{width:100%; border-collapse:collapse; font-size:14px;}
+table.boletim th{text-align:left; font-size:12px; text-transform:uppercase; letter-spacing:.05em; color:var(--muted); padding:8px 6px; border-bottom:1px solid var(--line);}
+table.boletim td{padding:9px 6px; border-bottom:1px solid var(--line); font-variant-numeric:tabular-nums;}
+table.boletim tr.total td{font-weight:800; font-size:17px; border-bottom:none; padding-top:16px; color:var(--accent);}
+.small{font-size:12px; color:var(--muted); margin-top:4px;}
+footer{text-align:center; padding-block:30px; font-size:13px; color:var(--muted);}
+.pwaHint{max-width:500px; margin:40px auto 0; text-align:center; font-size:13px;}
+.checkList{display:flex; flex-direction:column; gap:8px;}
+.checkItem{display:flex; align-items:flex-start; gap:10px; background:var(--bg); border:1px solid var(--line); border-radius:12px; padding:10px 12px; flex-wrap:wrap;}
+.checkItem input[type=checkbox]{width:18px; height:18px; margin-top:2px; flex:none;}
+.checkItem .ciText{font-size:14px; flex:1; min-width:140px;}
+.checkItem .ciText .ciPrice{display:block; font-size:12px; color:var(--muted);}
+.ciQty{display:flex; align-items:center; gap:6px; font-size:12px; color:var(--muted);}
+.ciQty input{width:60px; padding:6px 8px; border-radius:8px; border:1px solid var(--line); background:var(--surface); color:var(--ink); font-size:13px;}
+.ciQty.disabled{opacity:.4; pointer-events:none;}
+.alertBox{display:none; background:#fdecd2; border:1px solid var(--accent); color:#6b3d0f; border-radius:12px; padding:12px 14px; font-size:13px; margin-bottom:14px; font-weight:600;}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .alertBox{background:#3a2a16; color:#f3c98f; border-color:var(--accent);}}
+:root[data-theme="dark"] .alertBox{background:#3a2a16; color:#f3c98f; border-color:var(--accent);}
+.alertBox.show{display:block;}
+.profitCard{border:2px dashed var(--accent);}
+.profitBadge{font-size:11px; text-transform:uppercase; letter-spacing:.06em; font-weight:700; color:var(--accent); background:color-mix(in srgb, var(--accent) 15%, transparent); padding:4px 10px; border-radius:999px;}
+input[type=range]{height:28px; padding:0; background:transparent; border:none; -webkit-appearance:none; appearance:none;}
+input[type=range]::-webkit-slider-runnable-track{height:6px; background:var(--line); border-radius:999px;}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none; width:22px; height:22px; border-radius:50%; background:var(--accent); border:3px solid var(--surface); margin-top:-8px; cursor:pointer;}
+input[type=range]::-moz-range-track{height:6px; background:var(--line); border-radius:999px;}
+input[type=range]::-moz-range-thumb{width:22px; height:22px; border-radius:50%; background:var(--accent); border:3px solid var(--surface); cursor:pointer;}
+.gaugeBar{position:relative; height:16px; border-radius:999px; overflow:hidden; display:flex; margin-top:18px;}
+.gaugeSeg{height:100%;}
+.gaugeSeg.red{background:#e5484d; flex:1;}
+.gaugeSeg.green{background:var(--good); flex:1.3;}
+.gaugeSeg.blue{background:#3b82f6; flex:1;}
+.gaugeMarker{position:absolute; top:-5px; width:4px; height:26px; background:var(--ink); border-radius:2px; transform:translateX(-2px); transition:left .15s;}
+.gaugeLabels{display:flex; justify-content:space-between; font-size:11px; color:var(--muted); margin-top:4px;}
+.valorCobradoBig{font-family:'Space Grotesk'; font-size:26px; font-weight:800; color:var(--ink);}
+</style>
+</head>
+<body>
+
+<div class="wrap hero">
+  <span class="eyebrow">Para pintores, pedreiros, eletricistas e arquitetos</span>
+  <h1>Descubra quanto cobrar na sua próxima obra</h1>
+  <p class="lead">Informe a metragem do serviço, quem vai trabalhar com você e os materiais usados. O OrçaObra calcula tudo — mão de obra, material e imposto — e entrega um orçamento pronto para mostrar ao cliente.</p>
+  <a href="#calc" class="btn">Ir para a calculadora ↓</a>
+  <div class="howrow">
+    <div class="howcard"><div class="num">01</div><h3>Escolha o serviço</h3><p>Pintura, alvenaria, elétrica, hidráulica ou um valor por m² personalizado.</p></div>
+    <div class="howcard"><div class="num">02</div><h3>Monte sua equipe</h3><p>Adicione cada funcionário com a diária que ele realmente recebe.</p></div>
+    <div class="howcard"><div class="num">03</div><h3>Receba o boletim</h3><p>Mão de obra + materiais + imposto, linha por linha, com o valor final.</p></div>
+  </div>
+  <div class="profrow">
+    <span class="chip">🎨 Pintor</span><span class="chip">🧱 Pedreiro</span><span class="chip">⚡ Eletricista</span><span class="chip">🚰 Encanador</span><span class="chip">📐 Arquiteto</span><span class="chip">🧰 Qualquer profissional</span>
+  </div>
+</div>
+
+<div class="wrap" id="calc">
+  <h2 class="calcTitle" style="text-align:center;">Calculadora de orçamento</h2>
+  <p class="calcSub" style="text-align:center;">Preencha os campos abaixo. Os valores vão sendo somados automaticamente no boletim final.</p>
+
+  <div class="card">
+    <h2>1. Serviço e metragem</h2>
+    <p class="stepnote">O valor sugerido por m² é uma referência de mercado — ajuste como preferir.</p>
+    <div class="grid2">
+      <div class="field">
+        <label for="servico">Tipo de serviço</label>
+        <select id="servico">
+          <option value="pintura">Pintura (parede/teto)</option>
+          <option value="alvenaria">Alvenaria/reboco — ref. R$55/m²</option>
+          <option value="eletrica">Instalação elétrica — ref. R$40/m²</option>
+          <option value="hidraulica">Instalação hidráulica — ref. R$45/m²</option>
+          <option value="gesso">Gesso/drywall — ref. R$35/m²</option>
+          <option value="piso">Piso/revestimento (assentamento) — ref. R$25/m²</option>
+          <option value="outro">Outro / personalizado</option>
+        </select>
+      </div>
+      <div class="field" id="valorM2Field">
+        <label for="valorM2">Valor por m² (R$)</label>
+        <input id="valorM2" type="number" min="0" step="0.5" value="30">
+      </div>
+    </div>
+    <div class="field" id="pinturaFields" style="display:none;">
+      <p class="stepnote" style="margin-bottom:10px;">Escolha primeiro o ambiente (interno/externo), depois a tinta e o tom usados nele. Se a obra tiver mais de um ambiente — por exemplo, parede interna com acrílica e fachada externa com emborrachada — adicione um ambiente para cada um.</p>
+      <div id="areasPinturaList"></div>
+      <button class="addBtn" id="addAreaPintura" type="button">+ Adicionar ambiente</button>
+      <p class="small" id="pinturaResumo" style="margin-top:14px;"></p>
+    </div>
+    <div class="field" id="genericFields" style="display:none;">
+      <div class="grid2">
+        <div class="field">
+          <label id="genTipoLabel" for="genTipo">Tipo</label>
+          <select id="genTipo"></select>
+        </div>
+        <div class="field">
+          <label id="genModLabel" for="genMod">Acabamento/complexidade</label>
+          <select id="genMod"></select>
+        </div>
+      </div>
+      <p class="small" id="genericResumo"></p>
+    </div>
+    <div class="field" id="metragemField">
+      <label for="metragem">Metragem do serviço (m²)</label>
+      <input id="metragem" type="number" min="0" step="0.5" value="40">
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>2. Equipe (diárias)</h2>
+    <p class="stepnote">Adicione quantos funcionários forem necessários — cada um pode ter diária e nº de dias diferentes.</p>
+    <div id="empList"></div>
+    <button class="addBtn" id="addEmp" type="button">+ Adicionar funcionário</button>
+    <div class="field" style="margin-top:16px;">
+      <label for="marmitaValor">Marmita/almoço por funcionário por dia (R$) — deixe 0 se não fornecer</label>
+      <input id="marmitaValor" type="number" min="0" step="1" value="18">
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>3. Itens que você pode ter esquecido</h2>
+    <p class="stepnote">Marque o que já está incluído no seu custo. O que ficar desmarcado entra como alerta — e, se você quiser, já soma um valor estimado ao orçamento.</p>
+    <div class="alertBox" id="forgotAlert"></div>
+    <div class="checkList" id="checkList"></div>
+  </div>
+
+  <div class="card">
+    <h2>4. Deslocamento até a obra (combustível)</h2>
+    <p class="stepnote">Calcula quanto você vai gastar de gasolina indo e voltando da obra durante os dias de serviço.</p>
+    <div class="grid2">
+      <div class="field">
+        <label for="distancia">Distância de ida até a obra (km)</label>
+        <input id="distancia" type="number" min="0" step="0.5" value="10">
+      </div>
+      <div class="field">
+        <label for="diasDeslocamento">Dias com deslocamento</label>
+        <input id="diasDeslocamento" type="number" min="0" step="1" value="5">
+      </div>
+      <div class="field">
+        <label for="consumo">Consumo do veículo (km por litro)</label>
+        <input id="consumo" type="number" min="1" step="0.5" value="10">
+      </div>
+      <div class="field">
+        <label for="precoCombustivel">Preço do combustível (R$/litro)</label>
+        <input id="precoCombustivel" type="number" min="0" step="0.1" value="6.10">
+      </div>
+    </div>
+    <p class="small" id="deslocamentoResumo"></p>
+  </div>
+
+  <div class="card">
+    <h2>5. Materiais sugeridos</h2>
+    <p class="stepnote">Preços médios de referência por m² (mercado nacional). Compare qualidade × preço antes de comprar.</p>
+    <div class="matList" id="matList"></div>
+    <div class="field" style="margin-top:16px;">
+      <label for="materialPct">Ajuste de material a usar no orçamento (% do valor de referência)</label>
+      <input id="materialPct" type="number" min="0" step="5" value="100">
+    </div>
+    <p class="small">Dica: lojas de material de construção e grandes redes (ex: Leroy Merlin, C&C, Telhanorte, Tumelero) costumam ter o melhor custo-benefício para compras à vista; compare com a loja do seu bairro antes de decidir.</p>
+  </div>
+
+  <div class="card">
+    <h2>6. Trabalho em altura / risco</h2>
+    <p class="stepnote">Pintura de fachada, telhado ou qualquer serviço externo em altura costuma exigir equipamento alugado e um adicional de risco pela periculosidade.</p>
+    <div class="grid2">
+      <div class="field">
+        <label for="equipAltura">Equipamento necessário</label>
+        <select id="equipAltura">
+          <option value="nenhum">Nenhum (serviço no nível do solo)</option>
+          <option value="escada">Escada extensiva</option>
+          <option value="andaime">Andaime tubular</option>
+          <option value="plataforma">Plataforma elevatória (tesoura/articulada)</option>
+          <option value="cadeirinha">Cadeirinha/rapel (técnico de acesso)</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="diasAltura">Dias necessários com o equipamento</label>
+        <input id="diasAltura" type="number" min="0" step="1" value="0">
+      </div>
+    </div>
+    <div class="grid2">
+      <div class="field">
+        <label for="valorDiariaEquip">Valor do aluguel/serviço por dia (R$)</label>
+        <input id="valorDiariaEquip" type="number" min="0" step="10" value="0">
+      </div>
+      <div class="field">
+        <label for="adicionalRisco">Adicional de risco/periculosidade (% sobre a mão de obra)</label>
+        <input id="adicionalRisco" type="number" min="0" step="1" value="0">
+      </div>
+    </div>
+    <p class="small" id="alturaResumo"></p>
+  </div>
+
+  <div class="card">
+    <h2>7. Imposto / Nota fiscal</h2>
+    <p class="stepnote">Percentual que você precisa repassar ao emitir nota (MEI/Simples costuma variar de 6% a 15%).</p>
+    <div class="field">
+      <label for="imposto">Percentual de imposto sobre o total (%)</label>
+      <input id="imposto" type="number" min="0" step="0.5" value="6">
+    </div>
+    <div class="field">
+      <label for="margem">Margem de lucro / imprevistos (%)</label>
+      <input id="margem" type="number" min="0" step="1" value="10">
+    </div>
+  </div>
+
+  <div class="result">
+    <div class="resultHead">
+      <h2>📋 Boletim do orçamento</h2>
+      <button class="btn secondary" id="copyBtn" type="button">Copiar resumo</button>
+    </div>
+    <table class="boletim">
+      <thead><tr><th>Item</th><th>Detalhe</th><th style="text-align:right;">Valor</th></tr></thead>
+      <tbody id="boletimBody"></tbody>
+    </table>
+  </div>
+
+  <div class="card profitCard">
+    <h2>💰 Quanto cobrar para ter lucro <span class="profitBadge">só para você</span></h2>
+    <p class="stepnote">Seu custo real (mão de obra, materiais, combustível, equipamentos e marmita) foi de <strong id="custoRealTxt"></strong>. Arraste para decidir o quanto vai cobrar do cliente.</p>
+    <div class="field">
+      <label for="valorCobrado">Valor que você vai cobrar do cliente</label>
+      <input type="range" id="valorCobrado" min="0" max="1000" step="10" value="0">
+      <div style="display:flex; justify-content:space-between; align-items:baseline; margin-top:6px; flex-wrap:wrap; gap:8px;">
+        <span class="valorCobradoBig" id="valorCobradoTxt"></span>
+        <span id="lucroTxt" style="font-weight:700; font-size:14px;"></span>
+      </div>
+    </div>
+    <div class="gaugeBar"><div class="gaugeSeg red"></div><div class="gaugeSeg green"></div><div class="gaugeSeg blue"></div><div class="gaugeMarker" id="gaugeMarker"></div></div>
+    <div class="gaugeLabels"><span>Lucro baixo</span><span>Lucro justo</span><span>Lucro ótimo</span></div>
+    <p class="small" id="valorSugeridoTxt" style="margin-top:14px;"></p>
+  </div>
+
+  <div class="result">
+    <div class="resultHead">
+      <h2>🧾 Resumo para o cliente</h2>
+      <button class="btn secondary" id="copyClientBtn" type="button">Copiar para o cliente</button>
+    </div>
+    <p class="stepnote">Versão simplificada, sem mostrar sua margem de lucro — é essa que você envia ou mostra para o cliente. Tire um print da tela (ou use "Copiar") para enviar como imagem ou texto.</p>
+    <table class="boletim">
+      <thead><tr><th>Item</th><th>Detalhe</th><th style="text-align:right;">Valor</th></tr></thead>
+      <tbody id="clientBody"></tbody>
+    </table>
+  </div>
+
+  <div class="pwaHint">
+    <p><strong>Instalar no celular:</strong> abra este link no navegador do celular e toque em "Adicionar à tela inicial" (Chrome/Android) ou "Adicionar à Tela de Início" no botão de compartilhar (Safari/iPhone) para usar como aplicativo.</p>
+  </div>
+</div>
+
+<footer>OrçaObra — ferramenta de apoio. Os valores de referência são estimativas; sempre confira preços locais atualizados.</footer>
+
+<script>
+(function(){
+  const servico = document.getElementById('servico');
+  const valorM2 = document.getElementById('valorM2');
+  const baseRates = {outro:0};
+  const servicosConfig = {
+    alvenaria:{
+      tipoLabel:'Tipo de alvenaria/acabamento', modLabel:'Complexidade do reboco',
+      tipos:[
+        {value:'ceramico', label:'Levantar parede — bloco cerâmico', base:45},
+        {value:'concreto', label:'Levantar parede — bloco de concreto', base:48},
+        {value:'macico', label:'Levantar parede — tijolo maciço', base:58},
+        {value:'reboco', label:'Somente reboco/chapisco', base:30}
+      ],
+      mods:[
+        {value:'grosso', label:'Reboco grosso/sarrafeado', mult:1.0},
+        {value:'chapisco', label:'Reboco + chapisco completo', mult:1.15},
+        {value:'fino', label:'Reboco fino/massa única', mult:1.25}
+      ]
+    },
+    eletrica:{
+      tipoLabel:'Tipo de instalação elétrica', modLabel:'Padrão da instalação',
+      tipos:[
+        {value:'simples', label:'Tomadas e interruptores (pontos simples)', base:35},
+        {value:'embutir', label:'Embutir conduítes em alvenaria nova', base:45},
+        {value:'quadro', label:'Padrão de entrada/quadro de distribuição', base:60},
+        {value:'reforma', label:'Troca/reforma de fiação existente', base:50}
+      ],
+      mods:[
+        {value:'residencial', label:'Residencial padrão', mult:1.0},
+        {value:'comercial', label:'Comercial/industrial', mult:1.3},
+        {value:'automacao', label:'Automação/alta complexidade', mult:1.5}
+      ]
+    },
+    hidraulica:{
+      tipoLabel:'Tipo de instalação hidráulica', modLabel:'Padrão da obra',
+      tipos:[
+        {value:'fria', label:'Tubulação de água fria (PVC)', base:35},
+        {value:'friaquente', label:'Água fria + quente (PPR/CPVC)', base:55},
+        {value:'esgoto', label:'Esgoto/águas pluviais', base:45},
+        {value:'banheiro', label:'Reforma completa de banheiro', base:65}
+      ],
+      mods:[
+        {value:'residencial', label:'Residencial padrão', mult:1.0},
+        {value:'predial', label:'Predial/comercial', mult:1.25},
+        {value:'emergencial', label:'Troca emergencial/retrabalho', mult:1.4}
+      ]
+    },
+    gesso:{
+      tipoLabel:'Tipo de gesso/drywall', modLabel:'Finalidade',
+      tipos:[
+        {value:'forroGesso', label:'Forro de gesso liso', base:30},
+        {value:'forroDrywall', label:'Forro de drywall (placa standard)', base:35},
+        {value:'paredeDrywall', label:'Parede drywall (divisória)', base:45},
+        {value:'sanca', label:'Sanca/rebaixo decorativo', base:50}
+      ],
+      mods:[
+        {value:'padrao', label:'Padrão', mult:1.0},
+        {value:'umida', label:'Área úmida (placa RU)', mult:1.2},
+        {value:'acustico', label:'Isolamento acústico/térmico', mult:1.35}
+      ]
+    },
+    piso:{
+      tipoLabel:'Tipo de piso/revestimento', modLabel:'Tipo de assentamento',
+      tipos:[
+        {value:'ceramicaPadrao', label:'Cerâmica/porcelanato padrão', base:25},
+        {value:'porcelanatoGrande', label:'Porcelanato grande formato/retificado', base:35},
+        {value:'laminado', label:'Piso laminado/vinílico', base:30},
+        {value:'pedra', label:'Pedra natural/granito', base:45}
+      ],
+      mods:[
+        {value:'reto', label:'Assentamento reto', mult:1.0},
+        {value:'desenho', label:'Com desenho/padrão especial', mult:1.25},
+        {value:'externo', label:'Área externa/com caimento', mult:1.15}
+      ]
+    }
+  };
+  const tintaRates = {
+    latex:{interno:18, externo:22},
+    acrilica:{interno:25, externo:30},
+    esmalte:{interno:35, externo:40},
+    emborrachada:{interno:32, externo:38},
+    textura:{interno:40, externo:45}
+  };
+  const tomMultiplier = {claro:1.0, medio:1.15, escuro:1.3};
+
+  let areasPintura = [
+    {ambiente:'interno', tinta:'acrilica', tom:'claro', m2:40}
+  ];
+  const nomesTinta = {latex:'Látex PVA', acrilica:'Tinta acrílica', esmalte:'Esmalte sintético', emborrachada:'Tinta emborrachada', textura:'Textura/grafiato'};
+  function renderAreasPintura(){
+    const list = document.getElementById('areasPinturaList');
+    list.innerHTML = areasPintura.map((a,i)=>{
+      const base = tintaRates[a.tinta][a.ambiente];
+      const valorM2Area = Math.round(base*tomMultiplier[a.tom]*100)/100;
+      return `<div class="areaRow">
+        <div><label>Ambiente</label>
+          <select data-i="${i}" data-f="ambiente">
+            <option value="interno" ${a.ambiente==='interno'?'selected':''}>Interno</option>
+            <option value="externo" ${a.ambiente==='externo'?'selected':''}>Externo</option>
+          </select>
+        </div>
+        <div><label>Tipo de tinta</label>
+          <select data-i="${i}" data-f="tinta">
+            ${Object.keys(nomesTinta).map(k=>`<option value="${k}" ${a.tinta===k?'selected':''}>${nomesTinta[k]}</option>`).join('')}
+          </select>
+        </div>
+        <div><label>Tom da cor</label>
+          <select data-i="${i}" data-f="tom">
+            <option value="claro" ${a.tom==='claro'?'selected':''}>Claro</option>
+            <option value="medio" ${a.tom==='medio'?'selected':''}>Médio</option>
+            <option value="escuro" ${a.tom==='escuro'?'selected':''}>Escuro</option>
+          </select>
+        </div>
+        <div><label>m²</label><input data-i="${i}" data-f="m2" type="number" min="0" step="0.5" value="${a.m2}"></div>
+        <button class="rmBtn" data-rm="${i}" type="button" title="Remover">✕</button>
+        <div class="rowPrice">R$ ${base.toFixed(2)}/m² × ${tomMultiplier[a.tom]} (tom) = R$ ${valorM2Area.toFixed(2)}/m² · subtotal: ${fmt(valorM2Area*a.m2)}</div>
+      </div>`;
+    }).join('');
+    list.querySelectorAll('select, input').forEach(el=>{
+      el.addEventListener('input', e=>{
+        const i = +e.target.dataset.i, f = e.target.dataset.f;
+        areasPintura[i][f] = f==='m2' ? (+e.target.value||0) : e.target.value;
+        renderAreasPintura(); render();
+      });
+    });
+    list.querySelectorAll('[data-rm]').forEach(btn=>{
+      btn.addEventListener('click', e=>{
+        if(areasPintura.length>1){ areasPintura.splice(+e.target.dataset.rm,1); renderAreasPintura(); render(); }
+      });
+    });
+  }
+  document.getElementById('addAreaPintura').addEventListener('click', ()=>{
+    areasPintura.push({ambiente:'interno', tinta:'acrilica', tom:'claro', m2:20});
+    renderAreasPintura(); render();
+  });
+
+  function valorPinturaTotal(){
+    return areasPintura.reduce((s,a)=> s + a.m2 * Math.round(tintaRates[a.tinta][a.ambiente]*tomMultiplier[a.tom]*100)/100, 0);
+  }
+  function metragemPinturaTotal(){
+    return areasPintura.reduce((s,a)=> s + a.m2, 0);
+  }
+
+  function popularGenerico(servicoKey){
+    const cfg = servicosConfig[servicoKey];
+    document.getElementById('genTipoLabel').textContent = cfg.tipoLabel;
+    document.getElementById('genModLabel').textContent = cfg.modLabel;
+    const genTipo = document.getElementById('genTipo');
+    const genMod = document.getElementById('genMod');
+    genTipo.innerHTML = cfg.tipos.map(t=>`<option value="${t.value}">${t.label} — base R$${t.base}/m²</option>`).join('');
+    genMod.innerHTML = cfg.mods.map(m=>`<option value="${m.value}">${m.label}</option>`).join('');
+    atualizarValorGenerico();
+  }
+  function atualizarValorGenerico(){
+    const cfg = servicosConfig[servico.value];
+    if(!cfg) return;
+    const tipo = cfg.tipos.find(t=>t.value===document.getElementById('genTipo').value) || cfg.tipos[0];
+    const mod = cfg.mods.find(m=>m.value===document.getElementById('genMod').value) || cfg.mods[0];
+    const valor = Math.round(tipo.base*mod.mult*100)/100;
+    valorM2.value = valor;
+    document.getElementById('genericResumo').textContent =
+      `Mão de obra: R$ ${tipo.base.toFixed(2)}/m² × ${mod.mult} (${mod.label}) = R$ ${valor.toFixed(2)}/m²`;
+  }
+  document.getElementById('genTipo').addEventListener('change', ()=>{ atualizarValorGenerico(); render(); });
+  document.getElementById('genMod').addEventListener('change', ()=>{ atualizarValorGenerico(); render(); });
+
+  function atualizarCamposServico(){
+    const val = servico.value;
+    const isPintura = val === 'pintura';
+    const isGenerico = !!servicosConfig[val];
+    document.getElementById('pinturaFields').style.display = isPintura ? 'block' : 'none';
+    document.getElementById('genericFields').style.display = isGenerico ? 'block' : 'none';
+    document.getElementById('valorM2Field').style.display = (isPintura||isGenerico) ? 'none' : 'block';
+    document.getElementById('metragemField').style.display = isPintura ? 'none' : 'block';
+    if(isPintura){ renderAreasPintura(); }
+    else if(isGenerico){ popularGenerico(val); }
+    else { valorM2.value = baseRates[val] ?? valorM2.value; }
+    render();
+  }
+  servico.addEventListener('change', atualizarCamposServico);
+
+  const materiaisBase = [
+    {nome:'Tinta acrílica (premium / econômica)', min:35, max:70, unidade:'m²', dica:'Marcas como Suvinil/Coral (premium) vs. linhas populares das mesmas marcas (econômica).'},
+    {nome:'Cimento + areia + bloco (alvenaria)', min:45, max:80, unidade:'m²', dica:'Compare cimento CP-II de marcas regionais; bloco cerâmico x bloco de concreto.'},
+    {nome:'Fios, disjuntores e eletrodutos', min:30, max:60, unidade:'m²', dica:'Fios certificados (selo Inmetro) custam mais, mas são obrigatórios por segurança.'},
+    {nome:'Tubos e conexões hidráulicas', min:25, max:55, unidade:'m²', dica:'PVC soldável (mais barato) x PPR (mais durável, custa mais).'},
+    {nome:'Placas de gesso/drywall + perfis', min:40, max:75, unidade:'m²', dica:'Placa standard x placa resistente à umidade (RU) para áreas molhadas.'},
+    {nome:'Piso/revestimento + argamassa', min:50, max:150, unidade:'m²', dica:'Porcelanato nacional x importado; o preço varia muito com o acabamento.'}
+  ];
+
+  const matListEl = document.getElementById('matList');
+  function renderMateriais(){
+    matListEl.innerHTML = materiaisBase.map((m,i)=>`
+      <div class="matItem">
+        <div>
+          <div class="name">${m.nome}</div>
+          <div class="range">R$ ${m.min}–${m.max} por ${m.unidade} · ${m.dica}</div>
+        </div>
+        <span class="badge ${i%2?'econ':''}">${i%2? 'econômico':'recomendado'}</span>
+      </div>`).join('');
+  }
+  renderMateriais();
+  function materialMedio(){
+    const soma = materiaisBase.reduce((s,m)=> s + (m.min+m.max)/2, 0);
+    return soma / materiaisBase.length;
+  }
+
+  const checklistPorServico = {
+    pintura:[
+      {nome:'Fita crepe/fita adesiva', preco:25},
+      {nome:'Lona/plástico para proteger piso e móveis', preco:35},
+      {nome:'Massa corrida/lixa para preparar parede', preco:60},
+      {nome:'Rolo, pincel e bandeja extra', preco:40},
+      {nome:'Saco de lixo para restos de obra', preco:15}
+    ],
+    alvenaria:[
+      {nome:'EPI (luvas, óculos, capacete)', preco:70},
+      {nome:'Nível/prumo e esquadro', preco:30},
+      {nome:'Lona para proteger área ao redor', preco:35},
+      {nome:'Caçamba/descarte de entulho', preco:150}
+    ],
+    eletrica:[
+      {nome:'Fita isolante e abraçadeiras', preco:20},
+      {nome:'EPI isolante (luva/bota)', preco:60},
+      {nome:'Testador de tensão/multímetro', preco:0},
+      {nome:'Caixinhas e conectores extras', preco:35}
+    ],
+    hidraulica:[
+      {nome:'Fita veda-rosca/teflon', preco:10},
+      {nome:'Cola para PVC', preco:20},
+      {nome:'Lona para proteger o local', preco:25},
+      {nome:'Saco de lixo para restos de obra', preco:15}
+    ],
+    gesso:[
+      {nome:'Fita para junta de drywall', preco:25},
+      {nome:'Lixa e massa para acabamento', preco:40},
+      {nome:'Lona para proteger piso', preco:30}
+    ],
+    piso:[
+      {nome:'Espaçadores/niveladores de piso', preco:30},
+      {nome:'Rejunte', preco:35},
+      {nome:'Lona para proteger área', preco:25},
+      {nome:'Saco de lixo para restos de obra', preco:15}
+    ],
+    outro:[
+      {nome:'EPI básico (luvas, óculos)', preco:40},
+      {nome:'Fita adesiva/crepe', preco:20},
+      {nome:'Lona de proteção', preco:30},
+      {nome:'Saco de lixo para restos de obra', preco:15}
+    ]
+  };
+  const equipamentosAltura = {
+    nenhum:{diaria:0, risco:0},
+    escada:{diaria:25, risco:5},
+    andaime:{diaria:60, risco:15},
+    plataforma:{diaria:450, risco:20},
+    cadeirinha:{diaria:280, risco:30}
+  };
+  const equipAltura = document.getElementById('equipAltura');
+  const valorDiariaEquip = document.getElementById('valorDiariaEquip');
+  const adicionalRisco = document.getElementById('adicionalRisco');
+  equipAltura.addEventListener('change', ()=>{
+    const cfg = equipamentosAltura[equipAltura.value];
+    valorDiariaEquip.value = cfg.diaria;
+    adicionalRisco.value = cfg.risco;
+    document.getElementById('diasAltura').value = equipAltura.value==='nenhum' ? 0 : (document.getElementById('diasAltura').value||'5');
+    render();
+  });
+
+  let marcados = {};
+  let quantidades = {};
+  function renderChecklist(){
+    const key = servico.value;
+    const itens = checklistPorServico[key] || checklistPorServico.outro;
+    const checklistEl = document.getElementById('checkList');
+    checklistEl.innerHTML = itens.map((it,i)=>{
+      const id = key+'-'+i;
+      const checked = !!marcados[id];
+      const qty = quantidades[id] ?? 1;
+      return `<div class="checkItem">
+        <input type="checkbox" id="chk-${id}" data-id="${id}" data-preco="${it.preco}" ${checked?'checked':''}>
+        <label for="chk-${id}" class="ciText" style="margin:0;">${it.nome}${it.preco>0?`<span class="ciPrice">R$ ${it.preco} por unidade/pacote</span>`:''}</label>
+        <div class="ciQty ${checked?'':'disabled'}" data-qty-wrap="${id}">
+          <span>Quantidade:</span>
+          <input type="number" min="1" step="1" value="${qty}" data-qty="${id}">
+        </div>
+      </div>`;
+    }).join('');
+    checklistEl.querySelectorAll('input[type=checkbox]').forEach(cb=>{
+      cb.addEventListener('change', e=>{
+        const id = e.target.dataset.id;
+        marcados[id] = e.target.checked;
+        checklistEl.querySelector(`[data-qty-wrap="${id}"]`).classList.toggle('disabled', !e.target.checked);
+        render();
+      });
+    });
+    checklistEl.querySelectorAll('input[data-qty]').forEach(inp=>{
+      inp.addEventListener('input', e=>{
+        quantidades[e.target.dataset.qty] = +e.target.value || 1;
+        render();
+      });
+    });
+    render();
+  }
+  servico.addEventListener('change', renderChecklist);
+
+  let empregados = [
+    {nome:'Funcionário 1', diaria:150, dias:5},
+    {nome:'Funcionário 2', diaria:120, dias:5}
+  ];
+  const empList = document.getElementById('empList');
+  function renderEmp(){
+    empList.innerHTML = empregados.map((e,i)=>`
+      <div class="empRow grid3">
+        <div><label>Nome</label><input data-i="${i}" data-f="nome" value="${e.nome}"></div>
+        <div><label>Diária (R$)</label><input data-i="${i}" data-f="diaria" type="number" min="0" step="10" value="${e.diaria}"></div>
+        <div><label>Dias</label><input data-i="${i}" data-f="dias" type="number" min="0" step="1" value="${e.dias}"></div>
+        <button class="rmBtn" data-rm="${i}" type="button" title="Remover">✕</button>
+      </div>`).join('');
+    empList.querySelectorAll('input').forEach(inp=>{
+      inp.addEventListener('input', e=>{
+        const i = +e.target.dataset.i, f = e.target.dataset.f;
+        empregados[i][f] = f==='nome' ? e.target.value : (+e.target.value||0);
+        render();
+      });
+    });
+    empList.querySelectorAll('[data-rm]').forEach(btn=>{
+      btn.addEventListener('click', e=>{
+        empregados.splice(+e.target.dataset.rm,1);
+        renderEmp(); render();
+      });
+    });
+  }
+  document.getElementById('addEmp').addEventListener('click', ()=>{
+    empregados.push({nome:'Funcionário '+(empregados.length+1), diaria:130, dias:5});
+    renderEmp(); render();
+  });
+  renderEmp();
+
+  function fmt(n){ return n.toLocaleString('pt-BR',{style:'currency',currency:'BRL'}); }
+
+  let sliderTouched = false;
+  let custoRealAtual = 0;
+  const sliderEl = document.getElementById('valorCobrado');
+  function updateProfitDisplay(){
+    const valorCobrado = +sliderEl.value || 0;
+    document.getElementById('valorCobradoTxt').textContent = fmt(valorCobrado);
+    const lucro = valorCobrado - custoRealAtual;
+    const lucroPct = custoRealAtual>0 ? (lucro/custoRealAtual*100) : 0;
+    let cor, texto;
+    if(lucroPct < 15){ cor = '#e5484d'; texto='lucro baixo'; }
+    else if(lucroPct < 40){ cor = 'var(--good)'; texto='lucro justo'; }
+    else { cor = '#3b82f6'; texto='lucro ótimo'; }
+    const lucroTxtEl = document.getElementById('lucroTxt');
+    lucroTxtEl.textContent = `Lucro: ${fmt(lucro)} (${lucroPct.toFixed(0)}% — ${texto})`;
+    lucroTxtEl.style.color = cor;
+    const min = +sliderEl.min, max = +sliderEl.max;
+    const pct = max>min ? Math.min(100, Math.max(0, (valorCobrado-min)/(max-min)*100)) : 0;
+    const marker = document.getElementById('gaugeMarker');
+    marker.style.left = pct+'%';
+    marker.style.background = cor;
+    renderClientSummary(valorCobrado);
+  }
+  sliderEl.addEventListener('input', ()=>{ sliderTouched = true; updateProfitDisplay(); });
+
+  function renderClientSummary(valorCobrado){
+    const isPintura = servico.value === 'pintura';
+    const servicoLabel = servico.options[servico.selectedIndex].text.split(' — ')[0];
+    const m2 = +document.getElementById('metragem').value || 0;
+    const valorServico = isPintura ? valorPinturaTotal() : (+valorM2.value * m2);
+    const maoDeObra = empregados.reduce((s,e)=> s + e.diaria*e.dias, 0);
+    const marmitaValor = +document.getElementById('marmitaValor').value || 0;
+    const totalMarmitas = empregados.reduce((s,e)=> s + marmitaValor*e.dias, 0);
+    const pct = (+document.getElementById('materialPct').value || 0) / 100;
+    const valorMateriais = materialMedio() * pct * m2;
+    const rows = [
+      [servicoLabel, `${m2} m²`, fmt(valorServico)],
+      ['Mão de obra e equipe', `${empregados.length} profissional(is), com alimentação`, fmt(maoDeObra+totalMarmitas)],
+      ['Materiais', `${m2} m²`, fmt(valorMateriais)],
+      ['Deslocamento, equipamentos e imprevistos', 'inclui transporte, equipamento de altura e itens extras', fmt(Math.max(0, valorCobrado - valorServico - maoDeObra - totalMarmitas - valorMateriais))],
+    ];
+    document.getElementById('clientBody').innerHTML =
+      rows.map(r=>`<tr><td>${r[0]}</td><td>${r[1]}</td><td style="text-align:right;">${r[2]}</td></tr>`).join('') +
+      `<tr class="total"><td colspan="2">Valor total do orçamento</td><td style="text-align:right;">${fmt(valorCobrado)}</td></tr>`;
+    window.__resumoCliente = `Orçamento — ${servicoLabel} (${m2} m²)\n` +
+      rows.map(r=>`${r[0]}: ${r[2]}`).join('\n') + `\nVALOR TOTAL: ${fmt(valorCobrado)}`;
+  }
+
+  function render(){
+    const isPintura = servico.value === 'pintura';
+    if(isPintura){ document.getElementById('metragem').value = metragemPinturaTotal(); }
+    const m2 = +document.getElementById('metragem').value || 0;
+    const vUnit = +valorM2.value || 0;
+    const servicoLabel = servico.options[servico.selectedIndex].text.split(' — ')[0];
+    const valorServico = isPintura ? valorPinturaTotal() : m2 * vUnit;
+    if(isPintura){
+      document.getElementById('pinturaResumo').textContent =
+        `${areasPintura.length} ambiente(s), ${m2.toFixed(1)} m² no total — mão de obra de pintura: ${fmt(valorServico)}`;
+    }
+
+    const marmitaValor = +document.getElementById('marmitaValor').value || 0;
+    const maoDeObra = empregados.reduce((s,e)=> s + e.diaria*e.dias, 0);
+    const totalMarmitas = empregados.reduce((s,e)=> s + marmitaValor*e.dias, 0);
+
+    const pct = (+document.getElementById('materialPct').value || 0) / 100;
+    const matUnit = materialMedio() * pct;
+    const valorMateriais = matUnit * m2;
+
+    const distancia = +document.getElementById('distancia').value || 0;
+    const diasDesl = +document.getElementById('diasDeslocamento').value || 0;
+    const consumo = +document.getElementById('consumo').value || 1;
+    const precoComb = +document.getElementById('precoCombustivel').value || 0;
+    const litros = (distancia*2*diasDesl) / consumo;
+    const valorCombustivel = litros * precoComb;
+    document.getElementById('deslocamentoResumo').textContent =
+      `${(distancia*2).toFixed(1)} km por dia (ida e volta) × ${diasDesl} dias = ${(distancia*2*diasDesl).toFixed(1)} km → ${litros.toFixed(1)} litros → ${fmt(valorCombustivel)}`;
+
+    const checklistEl = document.getElementById('checkList');
+    let faltando = [], custoEsquecidos = 0;
+    checklistEl.querySelectorAll('input[type=checkbox]').forEach(cb=>{
+      const label = cb.closest('.checkItem').querySelector('.ciText').textContent.split('R$')[0].trim();
+      if(!cb.checked){ faltando.push(label); }
+      else {
+        const qty = quantidades[cb.dataset.id] ?? 1;
+        custoEsquecidos += (+cb.dataset.preco || 0) * qty;
+      }
+    });
+    const alertBox = document.getElementById('forgotAlert');
+    if(faltando.length){
+      alertBox.classList.add('show');
+      alertBox.innerHTML = '⚠️ Você ainda não marcou: ' + faltando.join(', ') + '. Se forem necessários, marque-os para entrar no orçamento.';
+    } else {
+      alertBox.classList.remove('show');
+    }
+
+    const diasAltura = +document.getElementById('diasAltura').value || 0;
+    const diariaEquip = +valorDiariaEquip.value || 0;
+    const custoEquipAltura = diasAltura * diariaEquip;
+    const riscoPct = +adicionalRisco.value || 0;
+    const custoRisco = maoDeObra * riscoPct/100;
+    document.getElementById('alturaResumo').textContent =
+      (equipAltura.value==='nenhum') ? 'Nenhum equipamento de altura selecionado.' :
+      `${diasAltura} dia(s) × ${fmt(diariaEquip)} = ${fmt(custoEquipAltura)} de equipamento + ${riscoPct}% de risco sobre a mão de obra = ${fmt(custoRisco)}`;
+
+    const custoReal = maoDeObra + totalMarmitas + valorMateriais + valorCombustivel + custoEsquecidos + custoEquipAltura + custoRisco;
+    const subtotal = valorServico + custoReal;
+    const margemPct = +document.getElementById('margem').value || 0;
+    const margem = subtotal * margemPct/100;
+    const comMargem = subtotal + margem;
+    const impostoPct = +document.getElementById('imposto').value || 0;
+    const imposto = comMargem * impostoPct/100;
+    const total = comMargem + imposto;
+
+    custoRealAtual = custoReal;
+    document.getElementById('custoRealTxt').textContent = fmt(custoReal);
+    const sliderMax = Math.max(Math.round((total*1.6)/10)*10, Math.round((custoReal*2.5)/10)*10, 100);
+    const sliderMin = Math.round(custoReal/10)*10;
+    sliderEl.min = sliderMin; sliderEl.max = sliderMax; sliderEl.step = 10;
+    if(!sliderTouched){ sliderEl.value = Math.round(total/10)*10; }
+    else if(+sliderEl.value < sliderMin){ sliderEl.value = sliderMin; }
+    document.getElementById('valorSugeridoTxt').textContent = `Valor sugerido (custo + margem de ${margemPct}% + imposto): ${fmt(total)}`;
+    updateProfitDisplay();
+
+    const rows = [
+      [servicoLabel, isPintura ? `${areasPintura.length} ambiente(s), ${m2} m²` : `${m2} m² × ${fmt(vUnit)}`, fmt(valorServico)],
+      ['Mão de obra', empregados.map(e=>`${e.nome}: ${e.dias}d × ${fmt(e.diaria)}`).join('<br>') || '—', fmt(maoDeObra)],
+      ['Marmita/almoço', marmitaValor>0 ? `${empregados.length} funcionário(s) × ${fmt(marmitaValor)}/dia` : 'não incluído', fmt(totalMarmitas)],
+      ['Materiais', `${m2} m² × ${fmt(matUnit)}/m² (${(pct*100).toFixed(0)}% da referência)`, fmt(valorMateriais)],
+      ['Itens extras marcados', custoEsquecidos>0 ? 'itens do checklist marcados' : 'nenhum marcado', fmt(custoEsquecidos)],
+      ['Combustível/deslocamento', `${litros.toFixed(1)} L × ${fmt(precoComb)}`, fmt(valorCombustivel)],
+      ['Equipamento de altura', equipAltura.value==='nenhum' ? 'não utilizado' : `${equipAltura.options[equipAltura.selectedIndex].text}: ${diasAltura}d × ${fmt(diariaEquip)}`, fmt(custoEquipAltura)],
+      ['Adicional de risco/periculosidade', `${riscoPct}% sobre mão de obra`, fmt(custoRisco)],
+      ['Margem/imprevistos', `${margemPct}% sobre subtotal`, fmt(margem)],
+      ['Imposto (nota fiscal)', `${impostoPct}% sobre o valor com margem`, fmt(imposto)],
+    ];
+    document.getElementById('boletimBody').innerHTML =
+      rows.map(r=>`<tr><td>${r[0]}</td><td>${r[1]}</td><td style="text-align:right;">${r[2]}</td></tr>`).join('') +
+      `<tr class="total"><td colspan="2">Total a cobrar</td><td style="text-align:right;">${fmt(total)}</td></tr>`;
+    window.__resumo = `Orçamento ${servicoLabel} (${m2} m²)\n` +
+      rows.map(r=>`${r[0]}: ${r[2]}`).join('\n') + `\nTOTAL: ${fmt(total)}`;
+  }
+
+  ['metragem','valorM2','materialPct','imposto','margem','marmitaValor','distancia','diasDeslocamento','consumo','precoCombustivel','diasAltura','valorDiariaEquip','adicionalRisco'].forEach(id=>{
+    document.getElementById(id).addEventListener('input', render);
+  });
+
+  document.getElementById('copyBtn').addEventListener('click', async ()=>{
+    const text = window.__resumo || '';
+    try{ await navigator.clipboard.writeText(text); }catch(e){
+      const ta=document.createElement('textarea'); ta.value=text; document.body.appendChild(ta);
+      ta.select(); try{document.execCommand('copy');}catch(e2){} ta.remove();
+    }
+    const btn = document.getElementById('copyBtn');
+    const old = btn.textContent; btn.textContent='Copiado!'; setTimeout(()=>btn.textContent=old, 1500);
+  });
+
+  document.getElementById('copyClientBtn').addEventListener('click', async ()=>{
+    const text = window.__resumoCliente || '';
+    try{ await navigator.clipboard.writeText(text); }catch(e){
+      const ta=document.createElement('textarea'); ta.value=text; document.body.appendChild(ta);
+      ta.select(); try{document.execCommand('copy');}catch(e2){} ta.remove();
+    }
+    const btn = document.getElementById('copyClientBtn');
+    const old = btn.textContent; btn.textContent='Copiado!'; setTimeout(()=>btn.textContent=old, 1500);
+  });
+
+  renderAreasPintura();
+  atualizarCamposServico();
+  renderChecklist();
+  render();
+})();
+</script>
+</body>
+</html>
