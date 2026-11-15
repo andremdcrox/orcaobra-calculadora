@@ -362,6 +362,7 @@ footer{text-align:center; padding-block:30px; font-size:13px; color:var(--muted)
     if(visaoAtual==='pessoal') return lista.filter(l=>l.categoria!=='Obra/Trabalho');
     return lista;
   }
+  function getLancamentos(){ return aplicarFiltroVisao(todosLancamentos); }
   function setVisao(v){
     visaoAtual = v;
     document.getElementById('btnVisaoTudo').classList.toggle('active', v==='tudo');
