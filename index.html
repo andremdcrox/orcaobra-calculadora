@@ -187,7 +187,18 @@ input[type=range]::-moz-range-thumb{width:22px; height:22px; border-radius:50%; 
   </div>
 
   <div class="card">
-    <h2>1. Serviço e metragem</h2>
+    <h2>1. Equipe (diárias)</h2>
+    <p class="stepnote">Adicione quantos funcionários forem necessários — cada um pode ter diária e nº de dias diferentes. Pode preencher isso antes ou depois do serviço, a ordem não muda o resultado: cada campo soma de forma independente e tudo recalcula sozinho.</p>
+    <div id="empList"></div>
+    <button class="addBtn" id="addEmp" type="button">+ Adicionar funcionário</button>
+    <div class="field" style="margin-top:16px;">
+      <label for="marmitaValor">Marmita/almoço por funcionário por dia (R$) — deixe 0 se não fornecer</label>
+      <input id="marmitaValor" type="number" min="0" step="1" value="18">
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>2. Serviço e metragem</h2>
     <p class="stepnote">O valor sugerido por m² é uma referência de mercado — ajuste como preferir.</p>
     <div class="grid2">
       <div class="field">
@@ -229,17 +240,6 @@ input[type=range]::-moz-range-thumb{width:22px; height:22px; border-radius:50%; 
     <div class="field" id="metragemField">
       <label for="metragem">Metragem do serviço (m²)</label>
       <input id="metragem" type="number" min="0" step="0.5" value="40">
-    </div>
-  </div>
-
-  <div class="card">
-    <h2>2. Equipe (diárias)</h2>
-    <p class="stepnote">Adicione quantos funcionários forem necessários — cada um pode ter diária e nº de dias diferentes.</p>
-    <div id="empList"></div>
-    <button class="addBtn" id="addEmp" type="button">+ Adicionar funcionário</button>
-    <div class="field" style="margin-top:16px;">
-      <label for="marmitaValor">Marmita/almoço por funcionário por dia (R$) — deixe 0 se não fornecer</label>
-      <input id="marmitaValor" type="number" min="0" step="1" value="18">
     </div>
   </div>
 
