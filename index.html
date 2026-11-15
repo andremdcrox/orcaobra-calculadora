@@ -149,6 +149,16 @@ input[type=range]::-moz-range-thumb{width:22px; height:22px; border-radius:50%; 
 .valorCobradoBig{font-family:'Space Grotesk'; font-size:26px; font-weight:800; color:var(--ink);}
 .exportBtns{display:flex; flex-wrap:wrap; gap:10px; margin-top:20px;}
 .exportBtns .btn{flex:1; min-width:160px; justify-content:center;}
+.modalOverlay{display:none; position:fixed; inset:0; background:rgba(0,0,0,.5); z-index:50; align-items:center; justify-content:center; padding:16px;}
+.modalOverlay.show{display:flex;}
+.modalCard{background:var(--surface); border-radius:20px; padding:28px; max-width:400px; width:100%; max-height:90vh; overflow-y:auto;}
+.savedList{display:flex; flex-direction:column; gap:8px; margin-top:10px;}
+.savedItem{display:flex; justify-content:space-between; align-items:center; gap:10px; background:var(--bg); border:1px solid var(--line); border-radius:12px; padding:10px 14px;}
+.savedItem .nome{font-weight:600; font-size:14px;}
+.savedItem .data{font-size:12px; color:var(--muted);}
+.savedItem .acoes{display:flex; gap:6px;}
+.savedItem button{font-size:12px; padding:6px 10px; border-radius:8px; border:1px solid var(--line); background:var(--surface); color:var(--ink); cursor:pointer; font-family:inherit;}
+.savedItem button.del{color:#e5484d; border-color:#e5484d;}
 </style>
 </head>
 <body>
@@ -157,6 +167,10 @@ input[type=range]::-moz-range-thumb{width:22px; height:22px; border-radius:50%; 
   <h1>Descubra quanto cobrar na sua próxima obra</h1>
   <p class="lead">Informe a metragem do serviço, quem vai trabalhar com você e os materiais usados. O OrçaObra calcula tudo — mão de obra, material e imposto — e entrega um orçamento pronto para mostrar ao cliente.</p>
   <a href="#calc" class="btn">Ir para a calculadora ↓</a>
+  <div style="margin-top:18px;">
+    <button class="btn secondary" id="openAuthBtn" type="button">👤 Entrar / Criar conta</button>
+    <span class="small" id="authStatus" style="display:block; margin-top:8px;"></span>
+  </div>
   <div class="howrow">
     <div class="howcard"><div class="num">01</div><h3>Escolha o serviço</h3><p>Pintura, alvenaria, elétrica, hidráulica ou um valor por m² personalizado.</p></div>
     <div class="howcard"><div class="num">02</div><h3>Monte sua equipe</h3><p>Adicione cada funcionário com a diária que ele realmente recebe.</p></div>
@@ -164,6 +178,32 @@ input[type=range]::-moz-range-thumb{width:22px; height:22px; border-radius:50%; 
   </div>
   <div class="profrow">
     <span class="chip">🎨 Pintor</span><span class="chip">🧱 Pedreiro</span><span class="chip">⚡ Eletricista</span><span class="chip">🚰 Encanador</span><span class="chip">📐 Arquiteto</span><span class="chip">🧰 Qualquer profissional</span>
+  </div>
+</div>
+
+<div class="modalOverlay" id="authModal">
+  <div class="modalCard">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+      <h2 id="authTitle">Entrar</h2>
+      <button class="rmBtn" id="closeAuthBtn" type="button">✕</button>
+    </div>
+    <button class="btn" id="googleBtn" type="button" style="width:100%; justify-content:center; background:#ffffff; color:#1f2a24; border:1px solid var(--line);">🔵 Continuar com Google</button>
+    <div style="display:flex; align-items:center; gap:10px; margin:16px 0; color:var(--muted); font-size:12px;">
+      <div style="flex:1; height:1px; background:var(--line);"></div>ou com e-mail<div style="flex:1; height:1px; background:var(--line);"></div>
+    </div>
+    <div class="field">
+      <label for="authEmail">E-mail</label>
+      <input id="authEmail" type="email" placeholder="voce@exemplo.com">
+    </div>
+    <div class="field">
+      <label for="authSenha">Senha</label>
+      <input id="authSenha" type="password" placeholder="Mínimo 6 caracteres">
+    </div>
+    <button class="btn" id="authSubmitBtn" type="button" style="width:100%; justify-content:center;">Entrar</button>
+    <p class="small" style="text-align:center; margin-top:12px;">
+      <a href="#" id="authToggleMode" style="color:var(--accent); text-decoration:underline;">Ainda não tem conta? Criar conta</a>
+    </p>
+    <p class="small" id="authMsg" style="text-align:center; min-height:16px;"></p>
   </div>
 </div>
 
@@ -193,6 +233,22 @@ input[type=range]::-moz-range-thumb{width:22px; height:22px; border-radius:50%; 
       </select>
       <p class="small">O valor final muda conforme o tipo: prédio tem mais logística (elevador, regras de condomínio, horários) e obra comercial costuma ter prazo mais apertado e mais responsabilidade — por isso cobram mais que uma casa comum.</p>
     </div>
+  </div>
+
+  <div class="card" id="savedCard" style="display:none;">
+    <h2>☁️ Meus orçamentos salvos</h2>
+    <p class="stepnote">Dê um nome (ex: "Obra João" ou "Prédio Central") e salve — fica guardado na sua conta para sempre.</p>
+    <div class="grid2">
+      <div class="field" style="margin-bottom:0;">
+        <label for="nomeOrcamentoSalvar">Nome deste orçamento</label>
+        <input id="nomeOrcamentoSalvar" type="text" placeholder="Ex: Obra João — fachada">
+      </div>
+      <div class="field" style="margin-bottom:0; display:flex; align-items:flex-end;">
+        <button class="btn" id="salvarOrcamentoBtn" type="button" style="width:100%; justify-content:center;">💾 Salvar orçamento atual</button>
+      </div>
+    </div>
+    <p class="small" id="salvarMsg"></p>
+    <div class="savedList" id="savedList"></div>
   </div>
 
   <div class="card">
@@ -411,8 +467,190 @@ input[type=range]::-moz-range-thumb{width:22px; height:22px; border-radius:50%; 
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
 <script>
 (function(){
+  const sb = window.supabase.createClient(
+    'https://wozdlrylzbhcpoxzjonn.supabase.co',
+    'sb_publishable_2602mpnNu7BCErMDsERhDA_FmZLrnT5'
+  );
+  let sessaoAtual = null;
+
+  function getState(){
+    return {
+      servico: servico.value,
+      valorM2: valorM2.value,
+      metragem: document.getElementById('metragem').value,
+      areasPintura: JSON.parse(JSON.stringify(areasPintura)),
+      genTipo: document.getElementById('genTipo').value,
+      genMod: document.getElementById('genMod').value,
+      empregados: JSON.parse(JSON.stringify(empregados)),
+      marmitaValor: document.getElementById('marmitaValor').value,
+      marcados: JSON.parse(JSON.stringify(marcados)),
+      quantidades: JSON.parse(JSON.stringify(quantidades)),
+      distancia: document.getElementById('distancia').value,
+      diasDeslocamento: document.getElementById('diasDeslocamento').value,
+      consumo: document.getElementById('consumo').value,
+      precoCombustivel: document.getElementById('precoCombustivel').value,
+      equipAltura: document.getElementById('equipAltura').value,
+      diasAltura: document.getElementById('diasAltura').value,
+      valorDiariaEquip: document.getElementById('valorDiariaEquip').value,
+      adicionalRisco: document.getElementById('adicionalRisco').value,
+      materialPct: document.getElementById('materialPct').value,
+      imposto: document.getElementById('imposto').value,
+      margem: document.getElementById('margem').value,
+      nomeProfissional: document.getElementById('nomeProfissional').value,
+      nomeCliente: document.getElementById('nomeCliente').value,
+      tipoImovel: document.getElementById('tipoImovel').value,
+      bufferPrazoPct: document.getElementById('bufferPrazoPct').value,
+      valorCobrado: document.getElementById('valorCobrado').value
+    };
+  }
+
+  function setState(s){
+    if(!s) return;
+    servico.value = s.servico;
+    valorM2.value = s.valorM2;
+    document.getElementById('metragem').value = s.metragem;
+    areasPintura = s.areasPintura || areasPintura;
+    empregados = s.empregados || empregados;
+    document.getElementById('marmitaValor').value = s.marmitaValor;
+    marcados = s.marcados || {};
+    quantidades = s.quantidades || {};
+    document.getElementById('distancia').value = s.distancia;
+    document.getElementById('diasDeslocamento').value = s.diasDeslocamento;
+    document.getElementById('consumo').value = s.consumo;
+    document.getElementById('precoCombustivel').value = s.precoCombustivel;
+    document.getElementById('equipAltura').value = s.equipAltura;
+    document.getElementById('diasAltura').value = s.diasAltura;
+    document.getElementById('valorDiariaEquip').value = s.valorDiariaEquip;
+    document.getElementById('adicionalRisco').value = s.adicionalRisco;
+    document.getElementById('materialPct').value = s.materialPct;
+    document.getElementById('imposto').value = s.imposto;
+    document.getElementById('margem').value = s.margem;
+    document.getElementById('nomeProfissional').value = s.nomeProfissional || '';
+    document.getElementById('nomeCliente').value = s.nomeCliente || '';
+    document.getElementById('tipoImovel').value = s.tipoImovel || 'casa';
+    document.getElementById('bufferPrazoPct').value = s.bufferPrazoPct || 20;
+    atualizarCamposServico();
+    renderEmp();
+    renderChecklist();
+    if(s.genTipo){ document.getElementById('genTipo').value = s.genTipo; }
+    if(s.genMod){ document.getElementById('genMod').value = s.genMod; }
+    sliderTouched = true;
+    render();
+    sliderEl.value = s.valorCobrado;
+    updateProfitDisplay();
+  }
+
+  const authModal = document.getElementById('authModal');
+  const authMsg = document.getElementById('authMsg');
+  let authModo = 'entrar';
+
+  document.getElementById('closeAuthBtn').addEventListener('click', ()=> authModal.classList.remove('show'));
+  authModal.addEventListener('click', e=>{ if(e.target===authModal) authModal.classList.remove('show'); });
+
+  document.getElementById('authToggleMode').addEventListener('click', e=>{
+    e.preventDefault();
+    authModo = authModo==='entrar' ? 'criar' : 'entrar';
+    document.getElementById('authTitle').textContent = authModo==='entrar' ? 'Entrar' : 'Criar conta';
+    document.getElementById('authSubmitBtn').textContent = authModo==='entrar' ? 'Entrar' : 'Criar conta';
+    e.target.textContent = authModo==='entrar' ? 'Ainda não tem conta? Criar conta' : 'Já tem conta? Entrar';
+    authMsg.textContent = '';
+  });
+
+  document.getElementById('googleBtn').addEventListener('click', async ()=>{
+    await sb.auth.signInWithOAuth({ provider:'google', options:{ redirectTo: window.location.href } });
+  });
+
+  document.getElementById('authSubmitBtn').addEventListener('click', async ()=>{
+    const email = document.getElementById('authEmail').value.trim();
+    const senha = document.getElementById('authSenha').value;
+    if(!email || senha.length < 6){ authMsg.textContent = 'Preencha e-mail e uma senha com pelo menos 6 caracteres.'; return; }
+    authMsg.textContent = 'Aguarde...';
+    const fn = authModo==='entrar' ? sb.auth.signInWithPassword({email, password:senha}) : sb.auth.signUp({email, password:senha});
+    const { error } = await fn;
+    if(error){ authMsg.textContent = error.message; return; }
+    if(authModo==='criar'){ authMsg.textContent = 'Conta criada! Verifique seu e-mail se for pedido confirmação, ou já pode estar logado.'; }
+    else { authModal.classList.remove('show'); }
+  });
+
+  function atualizarUiAuth(session){
+    sessaoAtual = session;
+    const statusEl = document.getElementById('authStatus');
+    const openBtn = document.getElementById('openAuthBtn');
+    const savedCard = document.getElementById('savedCard');
+    if(session){
+      statusEl.textContent = `Logado como ${session.user.email}`;
+      openBtn.textContent = '🚪 Sair da conta';
+      savedCard.style.display = 'block';
+      carregarOrcamentosSalvos();
+    } else {
+      statusEl.textContent = 'Você não está logado — entre para salvar seus orçamentos.';
+      openBtn.textContent = '👤 Entrar / Criar conta';
+      savedCard.style.display = 'none';
+    }
+  }
+
+  document.getElementById('openAuthBtn').addEventListener('click', async ()=>{
+    if(sessaoAtual){ await sb.auth.signOut(); }
+    else { authModal.classList.add('show'); }
+  });
+
+  sb.auth.onAuthStateChange((_event, session)=> atualizarUiAuth(session));
+  sb.auth.getSession().then(({data})=> atualizarUiAuth(data.session));
+
+  document.getElementById('salvarOrcamentoBtn').addEventListener('click', async ()=>{
+    const nome = document.getElementById('nomeOrcamentoSalvar').value.trim();
+    const msg = document.getElementById('salvarMsg');
+    if(!nome){ msg.textContent = 'Dê um nome para esse orçamento antes de salvar.'; msg.style.color = '#e5484d'; return; }
+    if(!sessaoAtual){ msg.textContent = 'Entre na sua conta primeiro.'; return; }
+    msg.textContent = 'Salvando...';
+    const { error } = await sb.from('orcamentos').insert({
+      user_id: sessaoAtual.user.id,
+      nome,
+      dados: getState()
+    });
+    if(error){ msg.textContent = 'Erro ao salvar: ' + error.message; msg.style.color = '#e5484d'; return; }
+    msg.textContent = 'Orçamento salvo!'; msg.style.color = 'var(--good)';
+    document.getElementById('nomeOrcamentoSalvar').value = '';
+    carregarOrcamentosSalvos();
+  });
+
+  async function carregarOrcamentosSalvos(){
+    if(!sessaoAtual) return;
+    const { data, error } = await sb.from('orcamentos').select('id,nome,dados,created_at').order('created_at', { ascending:false });
+    const listEl = document.getElementById('savedList');
+    if(error){ listEl.innerHTML = `<p class="small">Erro ao carregar: ${error.message}</p>`; return; }
+    if(!data || !data.length){ listEl.innerHTML = '<p class="small">Nenhum orçamento salvo ainda.</p>'; return; }
+    listEl.innerHTML = data.map(item=>`
+      <div class="savedItem">
+        <div>
+          <div class="nome">${item.nome}</div>
+          <div class="data">${new Date(item.created_at).toLocaleDateString('pt-BR')}</div>
+        </div>
+        <div class="acoes">
+          <button data-abrir="${item.id}" type="button">Abrir</button>
+          <button data-del="${item.id}" class="del" type="button">Excluir</button>
+        </div>
+      </div>`).join('');
+    listEl.querySelectorAll('[data-abrir]').forEach(btn=>{
+      btn.addEventListener('click', ()=>{
+        const item = data.find(d=>d.id===btn.dataset.abrir);
+        setState(item.dados);
+        document.getElementById('nomeOrcamentoSalvar').value = item.nome;
+        document.getElementById('calc').scrollIntoView({behavior:'smooth'});
+      });
+    });
+    listEl.querySelectorAll('[data-del]').forEach(btn=>{
+      btn.addEventListener('click', async ()=>{
+        if(!confirm('Excluir este orçamento salvo?')) return;
+        await sb.from('orcamentos').delete().eq('id', btn.dataset.del);
+        carregarOrcamentosSalvos();
+      });
+    });
+  }
+
   const servico = document.getElementById('servico');
   const valorM2 = document.getElementById('valorM2');
   const baseRates = {outro:0};
