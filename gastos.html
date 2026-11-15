@@ -240,6 +240,10 @@ footer{text-align:center; padding-block:30px; font-size:13px; color:var(--muted)
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
 <script>
 (function(){
+  if('serviceWorker' in navigator){
+    window.addEventListener('load', ()=> navigator.serviceWorker.register('sw.js').catch(()=>{}));
+  }
+
   const sb = window.supabase.createClient(
     'https://wozdlrylzbhcpoxzjonn.supabase.co',
     'sb_publishable_2602mpnNu7BCErMDsERhDA_FmZLrnT5'

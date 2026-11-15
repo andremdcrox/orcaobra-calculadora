@@ -176,6 +176,7 @@ input[type=range]::-moz-range-thumb{width:22px; height:22px; border-radius:50%; 
   <p class="lead">Informe a metragem do serviço, quem vai trabalhar com você e os materiais usados. O OrçaObra calcula tudo — mão de obra, material e imposto — e entrega um orçamento pronto para mostrar ao cliente.</p>
   <a href="#calc" class="btn">Ir para a calculadora ↓</a>
   <div style="margin-top:18px; display:flex; gap:10px; justify-content:center; flex-wrap:wrap; position:relative;">
+    <button class="btn" id="installAppBtn" type="button" style="display:none;">📲 Baixar aplicativo</button>
     <button class="btn secondary" id="openAuthBtn" type="button">👤 Entrar / Criar conta</button>
     <a href="gastos.html" class="btn secondary">💰 Meus Gastos Pessoais</a>
     <div id="userMenuWrap" style="display:none; position:relative;">
@@ -183,6 +184,7 @@ input[type=range]::-moz-range-thumb{width:22px; height:22px; border-radius:50%; 
       <div id="userMenuDropdown" class="userDropdown"></div>
     </div>
   </div>
+  <p class="small" id="iosInstallHint" style="display:none; max-width:440px; margin:10px auto 0;">📲 No iPhone: toque no ícone de compartilhar <strong>⬆️</strong> do Safari e depois em "Adicionar à Tela de Início".</p>
   <div class="howrow">
     <div class="howcard"><div class="num">01</div><h3>Escolha o serviço</h3><p>Pintura, alvenaria, elétrica, hidráulica ou um valor por m² personalizado.</p></div>
     <div class="howcard"><div class="num">02</div><h3>Monte sua equipe</h3><p>Adicione cada funcionário com a diária que ele realmente recebe.</p></div>
@@ -483,6 +485,30 @@ input[type=range]::-moz-range-thumb{width:22px; height:22px; border-radius:50%; 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
 <script>
 (function(){
+  if('serviceWorker' in navigator){
+    window.addEventListener('load', ()=> navigator.serviceWorker.register('sw.js').catch(()=>{}));
+  }
+
+  let deferredInstallPrompt = null;
+  const installBtn = document.getElementById('installAppBtn');
+  window.addEventListener('beforeinstallprompt', e=>{
+    e.preventDefault();
+    deferredInstallPrompt = e;
+    installBtn.style.display = 'inline-flex';
+  });
+  installBtn.addEventListener('click', async ()=>{
+    if(!deferredInstallPrompt) return;
+    deferredInstallPrompt.prompt();
+    await deferredInstallPrompt.userChoice;
+    deferredInstallPrompt = null;
+    installBtn.style.display = 'none';
+  });
+  window.addEventListener('appinstalled', ()=>{ installBtn.style.display = 'none'; });
+
+  const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+  const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
+  if(isIOS && !isStandalone){ document.getElementById('iosInstallHint').style.display = 'block'; }
+
   const sb = window.supabase.createClient(
     'https://wozdlrylzbhcpoxzjonn.supabase.co',
     'sb_publishable_2602mpnNu7BCErMDsERhDA_FmZLrnT5'
