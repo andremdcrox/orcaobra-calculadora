@@ -149,6 +149,8 @@ input[type=range]::-moz-range-thumb{width:22px; height:22px; border-radius:50%; 
 .valorCobradoBig{font-family:'Space Grotesk'; font-size:26px; font-weight:800; color:var(--ink);}
 .exportBtns{display:flex; flex-wrap:wrap; gap:10px; margin-top:20px;}
 .exportBtns .btn{flex:1; min-width:160px; justify-content:center;}
+.quickResult{display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; background:var(--bg); border:1px dashed var(--accent); border-radius:12px; padding:12px 14px; margin-top:16px; font-size:14px;}
+.quickResult strong{font-family:'Space Grotesk'; font-size:18px; color:var(--accent);}
 .modalOverlay{display:none; position:fixed; inset:0; background:rgba(0,0,0,.5); z-index:50; align-items:center; justify-content:center; padding:16px;}
 .modalOverlay.show{display:flex;}
 .modalCard{background:var(--surface); border-radius:20px; padding:28px; max-width:400px; width:100%; max-height:90vh; overflow-y:auto;}
@@ -268,12 +270,16 @@ input[type=range]::-moz-range-thumb{width:22px; height:22px; border-radius:50%; 
 
   <div class="card">
     <h2>1. Equipe (diárias)</h2>
-    <p class="stepnote">Adicione quantos funcionários forem necessários — cada um pode ter diária e nº de dias diferentes. Pode preencher isso antes ou depois do serviço, a ordem não muda o resultado: cada campo soma de forma independente e tudo recalcula sozinho.</p>
+    <p class="stepnote">Quer só saber quanto vai gastar com funcionários e marmita? Preencha só esta parte e veja o total logo abaixo — não precisa mexer no resto da calculadora.</p>
     <div id="empList"></div>
     <button class="addBtn" id="addEmp" type="button">+ Adicionar funcionário</button>
     <div class="field" style="margin-top:16px;">
       <label for="marmitaValor">Marmita/almoço por funcionário por dia (R$) — deixe 0 se não fornecer</label>
       <input id="marmitaValor" type="number" min="0" step="1" value="18">
+    </div>
+    <div class="quickResult">
+      <span>🧮 Total só de mão de obra + marmita:</span>
+      <strong id="equipeSubtotalTxt">R$ 0,00</strong>
     </div>
   </div>
 
@@ -352,6 +358,10 @@ input[type=range]::-moz-range-thumb{width:22px; height:22px; border-radius:50%; 
       </div>
     </div>
     <p class="small" id="deslocamentoResumo"></p>
+    <div class="quickResult">
+      <span>🧮 Total só de combustível:</span>
+      <strong id="deslocamentoSubtotalTxt">R$ 0,00</strong>
+    </div>
   </div>
 
   <div class="card">
@@ -363,6 +373,10 @@ input[type=range]::-moz-range-thumb{width:22px; height:22px; border-radius:50%; 
       <input id="materialPct" type="number" min="0" step="5" value="100">
     </div>
     <p class="small">Dica: lojas de material de construção e grandes redes (ex: Leroy Merlin, C&C, Telhanorte, Tumelero) costumam ter o melhor custo-benefício para compras à vista; compare com a loja do seu bairro antes de decidir.</p>
+    <div class="quickResult">
+      <span>🧮 Total só de materiais:</span>
+      <strong id="materiaisSubtotalTxt">R$ 0,00</strong>
+    </div>
   </div>
 
   <div class="card">
@@ -395,6 +409,10 @@ input[type=range]::-moz-range-thumb{width:22px; height:22px; border-radius:50%; 
       </div>
     </div>
     <p class="small" id="alturaResumo"></p>
+    <div class="quickResult">
+      <span>🧮 Total só de equipamento + risco:</span>
+      <strong id="alturaSubtotalTxt">R$ 0,00</strong>
+    </div>
   </div>
 
   <div class="card">
@@ -1361,10 +1379,12 @@ input[type=range]::-moz-range-thumb{width:22px; height:22px; border-radius:50%; 
     const marmitaValor = +document.getElementById('marmitaValor').value || 0;
     const maoDeObra = empregados.reduce((s,e)=> s + e.diaria*e.dias, 0);
     const totalMarmitas = empregados.reduce((s,e)=> s + marmitaValor*e.dias, 0);
+    document.getElementById('equipeSubtotalTxt').textContent = fmt(maoDeObra + totalMarmitas);
 
     const pct = (+document.getElementById('materialPct').value || 0) / 100;
     const matUnit = materialMedio() * pct;
     const valorMateriais = matUnit * m2;
+    document.getElementById('materiaisSubtotalTxt').textContent = fmt(valorMateriais);
 
     const distancia = +document.getElementById('distancia').value || 0;
     const diasDesl = +document.getElementById('diasDeslocamento').value || 0;
@@ -1374,6 +1394,7 @@ input[type=range]::-moz-range-thumb{width:22px; height:22px; border-radius:50%; 
     const valorCombustivel = litros * precoComb;
     document.getElementById('deslocamentoResumo').textContent =
       `${(distancia*2).toFixed(1)} km por dia (ida e volta) × ${diasDesl} dias = ${(distancia*2*diasDesl).toFixed(1)} km → ${litros.toFixed(1)} litros → ${fmt(valorCombustivel)}`;
+    document.getElementById('deslocamentoSubtotalTxt').textContent = fmt(valorCombustivel);
 
     const checklistEl = document.getElementById('checkList');
     let faltando = [], custoEsquecidos = 0;
@@ -1401,6 +1422,7 @@ input[type=range]::-moz-range-thumb{width:22px; height:22px; border-radius:50%; 
     document.getElementById('alturaResumo').textContent =
       (equipAltura.value==='nenhum') ? 'Nenhum equipamento de altura selecionado.' :
       `${diasAltura} dia(s) × ${fmt(diariaEquip)} = ${fmt(custoEquipAltura)} de equipamento + ${riscoPct}% de risco sobre a mão de obra = ${fmt(custoRisco)}`;
+    document.getElementById('alturaSubtotalTxt').textContent = fmt(custoEquipAltura + custoRisco);
 
     const custoReal = maoDeObra + totalMarmitas + valorMateriais + valorCombustivel + custoEsquecidos + custoEquipAltura + custoRisco;
     const subtotal = valorServico + custoReal;
