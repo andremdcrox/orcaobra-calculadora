@@ -179,6 +179,51 @@ input[type=range]::-moz-range-thumb{width:22px; height:22px; border-radius:50%; 
 .userDropdown a, .userDropdown button{display:block; width:100%; text-align:left; padding:9px 10px; border-radius:8px; border:none; background:transparent; color:var(--ink); font-size:14px; font-family:inherit; cursor:pointer; text-decoration:none;}
 .userDropdown a:hover, .userDropdown button:hover{background:var(--bg);}
 .userDropdown .udLogout{color:#e5484d;}
+
+/* Responsive layout: keep every field and summary inside the phone viewport. */
+.wrap{width:100%; min-width:0;}
+.grid2{grid-template-columns:repeat(2,minmax(0,1fr));}
+.grid3{grid-template-columns:minmax(0,2fr) repeat(2,minmax(0,1fr)) auto;}
+.areaRow{grid-template-columns:minmax(0,1fr) minmax(0,1.4fr) minmax(0,1fr) minmax(0,.8fr) auto;}
+.grid2>*,.grid3>*,.areaRow>*,.matItem>*,.savedItem>*{min-width:0;}
+input,select{min-width:0; max-width:100%;}
+.btn{max-width:100%; white-space:normal; overflow-wrap:anywhere; justify-content:center;}
+.card,.result,.howcard,.modalCard{min-width:0; overflow-wrap:anywhere;}
+.matItem,.savedItem{flex-wrap:wrap;}
+.userDropdown{min-width:0; width:220px; max-width:calc(100vw - 64px);}
+.udEmail,.udName{overflow-wrap:anywhere;}
+@media (max-width:640px){
+  body{padding-left:max(12px,env(safe-area-inset-left,0px)); padding-right:max(12px,env(safe-area-inset-right,0px));}
+  .wrap{padding-block:28px;}
+  .hero{padding-block:36px 24px;}
+  .card,.result{padding:18px; border-radius:16px;}
+  .grid2{grid-template-columns:minmax(0,1fr);}
+  .grid3,.areaRow{grid-template-columns:repeat(2,minmax(0,1fr));}
+  .areaRow>div:has(select){grid-column:1/-1;}
+  .checkItem .ciText{min-width:0; flex-basis:calc(100% - 32px);}
+  .ciQty{flex-wrap:wrap;}
+  .quickNav{flex-wrap:wrap; justify-content:center; overflow:visible; padding:8px 0; gap:6px;}
+  .quickNav a{flex:1 1 28%; min-width:0; text-align:center; padding:8px 6px; white-space:normal;}
+  .exportBtns{flex-direction:column;}
+  .exportBtns .btn{width:100%; min-width:0; flex:auto; padding:14px 12px;}
+  .modalCard{padding:18px;}
+  #shareModal .modalCard>div{flex-wrap:wrap;}
+  #qrCodeBox canvas,#qrCodeBox img{max-width:100%; height:auto;}
+  table.boletim,table.boletim tbody,table.boletim tr,table.boletim td{display:block; width:100%;}
+  table.boletim thead{display:none;}
+  table.boletim tr{padding:12px 0; border-bottom:1px solid var(--line);}
+  table.boletim td{padding:3px 0; border:0; text-align:left !important; overflow-wrap:anywhere;}
+  table.boletim td:first-child{font-weight:700;}
+  table.boletim td:nth-child(2){font-size:13px; color:var(--muted);}
+  table.boletim td:last-child{font-size:16px; font-weight:700; color:var(--ink); padding-top:6px;}
+  table.boletim tr.total{border-bottom:0;}
+  table.boletim tr.total td{font-size:17px; color:var(--accent); padding-top:4px;}
+}
+@media (max-width:360px){
+  .grid3,.areaRow{grid-template-columns:minmax(0,1fr);}
+  .hero h1{font-size:30px;}
+}
+
 </style>
 </head>
 <body>
